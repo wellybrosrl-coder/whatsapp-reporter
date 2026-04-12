@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPratico Reporter</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Auth screen -->
+    <div id="screen-auth" class="screen">
+      <div class="auth-card">
+        <h1>iPratico Reporter</h1>
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="login">Accedi</button>
+          <button class="tab-btn" data-tab="register">Registrati</button>
+        </div>
+        <form id="form-login" class="tab-panel active">
+          <label>Email
+            <input type="email" id="login-email" autocomplete="email" required />
+          </label>
+          <label>Password
+            <input type="password" id="login-password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" class="btn-primary">Accedi</button>
+          <p class="form-error" id="login-error"></p>
+        </form>
+        <form id="form-register" class="tab-panel">
+          <label>Email
+            <input type="email" id="reg-email" autocomplete="email" required />
+          </label>
+          <label>Password
+            <input type="password" id="reg-password" autocomplete="new-password" required />
+          </label>
+          <button type="submit" class="btn-primary">Crea account</button>
+          <p class="form-error" id="reg-error"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main app -->
+    <div id="screen-app" class="screen hidden">
+      <nav class="sidebar">
+        <div class="sidebar-logo">📊 Reporter</div>
+        <a class="nav-link active" data-page="dashboard">Dashboard</a>
+        <a class="nav-link" data-page="ipratico">iPratico</a>
+        <a class="nav-link" data-page="whatsapp">WhatsApp</a>
+        <a class="nav-link" data-page="schedule">Orario invio</a>
+        <button class="btn-logout" id="btn-logout">Esci</button>
+      </nav>
+
+      <main class="content">
+        <!-- Dashboard -->
+        <div id="page-dashboard" class="page active">
+          <h2>Dashboard</h2>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-label">WhatsApp</div>
+              <div id="dash-wa-status" class="badge badge-gray">—</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Invio automatico</div>
+              <div id="dash-schedule" class="badge badge-gray">—</div>
+            </div>
+          </div>
+          <div class="action-row">
+            <button class="btn-primary" id="btn-preview">Anteprima messaggio</button>
+            <button class="btn-secondary" id="btn-send-now">Invia ora</button>
+          </div>
+          <div id="preview-box" class="preview-box hidden"></div>
+          <p id="dash-feedback" class="feedback"></p>
+        </div>
+
+        <!-- iPratico settings -->
+        <div id="page-ipratico" class="page hidden">
+          <h2>Credenziali iPratico</h2>
+          <form id="form-ipratico">
+            <label>Email iPratico
+              <input type="email" id="ip-email" autocomplete="off" />
+            </label>
+            <label>Password iPratico
+              <input type="password" id="ip-password" placeholder="(lascia vuoto per non modificare)" autocomplete="off" />
+            </label>
+            <label>Channel ID
+              <input type="text" id="ip-channel" placeholder="lct_20572" />
+            </label>
+            <div class="btn-row">
+              <button type="submit" class="btn-primary">Salva</button>
+              <button type="button" class="btn-secondary" id="btn-test-ipratico">Testa connessione</button>
+            </div>
+            <p class="feedback" id="ip-feedback"></p>
+          </form>
+        </div>
+
+        <!-- WhatsApp settings -->
+        <div id="page-whatsapp" class="page hidden">
+          <h2>Connessione WhatsApp</h2>
+          <form id="form-whatsapp-creds">
+            <label>Green API — ID istanza
+              <input type="text" id="wa-instance" placeholder="1234567890" autocomplete="off" />
+            </label>
+            <label>Green API — API Token
+              <input type="password" id="wa-token" placeholder="(lascia vuoto per non modificare)" autocomplete="off" />
+            </label>
+            <label>API URL
+              <input type="text" id="wa-url" placeholder="https://7107.api.greenapi.com" autocomplete="off" />
+            </label>
+            <button type="submit" class="btn-primary">Salva e mostra QR</button>
+            <p class="feedback" id="wa-creds-feedback"></p>
+          </form>
+
+          <div id="qr-section" class="qr-section hidden">
+            <h3>Scansiona con WhatsApp</h3>
+            <div id="qr-container">
+              <img id="qr-img" alt="QR Code WhatsApp" />
+            </div>
+            <p id="qr-status" class="qr-status">In attesa di scansione...</p>
+          </div>
+
+          <div id="chat-section" class="chat-section hidden">
+            <h3>Seleziona chat di destinazione</h3>
+            <select id="chat-select">
+              <option value="">-- Caricamento chat... --</option>
+            </select>
+            <button class="btn-primary" id="btn-save-chat">Salva chat</button>
+            <p class="feedback" id="chat-feedback"></p>
+            <p id="current-chat" class="hint"></p>
+          </div>
+        </div>
+
+        <!-- Schedule settings -->
+        <div id="page-schedule" class="page hidden">
+          <h2>Orario di invio</h2>
+          <form id="form-schedule">
+            <label>Orario invio (HH:MM)
+              <input type="time" id="sched-time" value="01:00" />
+            </label>
+            <label>Fuso orario
+              <select id="sched-tz">
+                <option value="Europe/Rome">Europe/Rome (IT)</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </label>
+            <div class="toggle-row">
+              <span>Invio automatico attivo</span>
+              <label class="toggle">
+                <input type="checkbox" id="sched-active" />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <button type="submit" class="btn-primary">Salva orario</button>
+            <p class="feedback" id="sched-feedback"></p>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
