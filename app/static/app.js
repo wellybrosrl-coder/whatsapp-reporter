@@ -300,9 +300,10 @@ document.getElementById('btn-test-ipratico').addEventListener('click', async () 
 // ---------- WhatsApp page ----------
 async function loadWhatsAppPage() {
   populateWAForm();
-  // If credentials are saved, auto-check status
+  // If credentials saved, auto-check status and show current state
   if (settings.greenapi_id_instance && settings.has_greenapi_token) {
-    await checkWAStatus();
+    showQRStep();
+    await checkAndShowWAState();
   }
 }
 
@@ -311,55 +312,58 @@ function populateWAForm() {
   document.getElementById('wa-url').value = settings.greenapi_api_url || 'https://7107.api.greenapi.com';
   document.getElementById('wa-token').placeholder = settings.has_greenapi_token
     ? '(token salvato — lascia vuoto per non modificare)'
-    : 'Inserisci API token Green API';
+    : 'Incolla qui il token dal dashboard Green API';
   if (settings.greenapi_chat_id) {
     document.getElementById('current-chat').textContent =
       `Chat attuale: ${settings.greenapi_chat_name || settings.greenapi_chat_id}`;
   }
 }
 
-async function checkWAStatus() {
-  stopQRPoll();
-  const qrSection = document.getElementById('qr-section');
-  const chatSection = document.getElementById('chat-section');
+function showQRStep() {
+  document.getElementById('step-qr-hint').classList.add('hidden');
+  document.getElementById('qr-section').classList.remove('hidden');
+}
+
+function showChatStep() {
+  document.getElementById('step-chat-hint').classList.add('hidden');
+  document.getElementById('chat-section').classList.remove('hidden');
+}
+
+async function checkAndShowWAState() {
   const qrStatus = document.getElementById('qr-status');
   const qrImg = document.getElementById('qr-img');
-  const fb = document.getElementById('wa-creds-feedback');
 
-  fb.textContent = 'Verifica stato connessione...';
-  fb.className = 'feedback';
+  qrStatus.textContent = 'Verifica connessione...';
+  qrStatus.style.color = '';
+  qrImg.style.display = 'none';
 
   try {
     const statusData = await api('GET', '/api/whatsapp/status');
     const state = statusData?.stateInstance || statusData?.state;
     if (state === 'authorized') {
-      fb.textContent = '';
-      qrSection.classList.remove('hidden');
-      qrImg.style.display = 'none';
       qrStatus.textContent = '✓ WhatsApp connesso';
       qrStatus.style.color = 'var(--success)';
-      chatSection.classList.remove('hidden');
+      showChatStep();
       await loadChats();
       return;
     }
-  } catch { /* will try QR */ }
+  } catch { /* not connected, show QR */ }
 
-  fb.textContent = '';
   await startQRFlow();
 }
 
 async function startQRFlow() {
   stopQRPoll();
-  const qrSection = document.getElementById('qr-section');
-  const chatSection = document.getElementById('chat-section');
   const qrStatus = document.getElementById('qr-status');
   const qrImg = document.getElementById('qr-img');
 
-  chatSection.classList.add('hidden');
-  qrSection.classList.remove('hidden');
-  qrImg.style.display = '';
-  qrStatus.textContent = 'Caricamento QR...';
+  showQRStep();
+  document.getElementById('chat-section').classList.add('hidden');
+  document.getElementById('step-chat-hint').classList.remove('hidden');
+
+  qrImg.style.display = 'none';
   qrStatus.style.color = '';
+  qrStatus.textContent = 'Caricamento QR...';
 
   try {
     const qrData = await api('GET', '/api/whatsapp/qr');
@@ -367,61 +371,80 @@ async function startQRFlow() {
     if (qrData.type === 'alreadyLogged') {
       qrStatus.textContent = '✓ Già connesso';
       qrStatus.style.color = 'var(--success)';
-      qrImg.style.display = 'none';
+      showChatStep();
       await loadChats();
       return;
     }
     if (qrData.message) {
       qrImg.src = `data:image/png;base64,${qrData.message}`;
-      qrStatus.textContent = 'Scansiona con WhatsApp sul tuo telefono...';
+      qrImg.style.display = '';
+      qrStatus.textContent = 'Apri WhatsApp → Impostazioni → Dispositivi collegati → Aggiungi dispositivo';
+      // Start polling every 5s
+      qrPollTimer = setInterval(async () => {
+        try {
+          const s = await api('GET', '/api/whatsapp/status');
+          const state = s?.stateInstance || s?.state;
+          if (state === 'authorized') {
+            stopQRPoll();
+            qrImg.style.display = 'none';
+            qrStatus.textContent = '✓ WhatsApp connesso!';
+            qrStatus.style.color = 'var(--success)';
+            showChatStep();
+            await loadChats();
+          }
+        } catch { /* keep polling */ }
+      }, 4000);
     } else {
       qrStatus.textContent = 'QR non disponibile — riprova tra qualche secondo';
-      return;
     }
   } catch (ex) {
     qrStatus.textContent = '✗ ' + ex.message;
     qrStatus.style.color = 'var(--danger)';
-    return;
   }
-
-  // Poll until authorized
-  qrPollTimer = setInterval(async () => {
-    try {
-      const s = await api('GET', '/api/whatsapp/status');
-      const state = s?.stateInstance || s?.state;
-      if (state === 'authorized') {
-        stopQRPoll();
-        qrStatus.textContent = '✓ Connesso!';
-        qrStatus.style.color = 'var(--success)';
-        qrImg.style.display = 'none';
-        await loadChats();
-      }
-    } catch { /* keep polling */ }
-  }, 5000);
 }
 
 function stopQRPoll() {
   if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
 }
 
+// Single button: save credentials AND start QR flow
 document.getElementById('form-whatsapp-creds').addEventListener('submit', async e => {
   e.preventDefault();
   const fb = document.getElementById('wa-creds-feedback');
-  const btn = document.getElementById('btn-save-wa');
+  const btn = document.getElementById('btn-connect-wa');
   fb.textContent = '';
   setLoading(btn, true);
+
   const body = {
-    greenapi_id_instance: document.getElementById('wa-instance').value,
-    greenapi_api_url: document.getElementById('wa-url').value,
+    greenapi_id_instance: document.getElementById('wa-instance').value.trim(),
+    greenapi_api_url: document.getElementById('wa-url').value.trim() || 'https://7107.api.greenapi.com',
   };
-  const tok = document.getElementById('wa-token').value;
+  const tok = document.getElementById('wa-token').value.trim();
   if (tok) body.greenapi_api_token = tok;
+
+  if (!body.greenapi_id_instance) {
+    fb.textContent = '✗ Inserisci l\'ID istanza';
+    fb.className = 'feedback err';
+    setLoading(btn, false);
+    return;
+  }
+  if (!tok && !settings.has_greenapi_token) {
+    fb.textContent = '✗ Inserisci il token API';
+    fb.className = 'feedback err';
+    setLoading(btn, false);
+    return;
+  }
+
   try {
     settings = await api('PUT', '/api/settings', body) || settings;
-    fb.textContent = '✓ Credenziali salvate';
+    fb.textContent = '✓ Credenziali salvate — caricamento QR...';
     fb.className = 'feedback ok';
     document.getElementById('wa-token').value = '';
     populateWAForm();
+    // Immediately show QR
+    showQRStep();
+    await startQRFlow();
+    fb.textContent = '';
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
@@ -430,22 +453,16 @@ document.getElementById('form-whatsapp-creds').addEventListener('submit', async 
   }
 });
 
-document.getElementById('btn-show-qr').addEventListener('click', async () => {
-  await startQRFlow();
-});
-
 document.getElementById('btn-refresh-qr').addEventListener('click', async () => {
   await startQRFlow();
 });
 
 async function loadChats() {
-  const chatSection = document.getElementById('chat-section');
   const chatSelect = document.getElementById('chat-select');
-  chatSection.classList.remove('hidden');
-  chatSelect.innerHTML = '<option value="">Caricamento...</option>';
+  chatSelect.innerHTML = '<option value="">Caricamento chat...</option>';
   try {
     const data = await api('GET', '/api/whatsapp/chats');
-    const chats = data?.chats || [];
+    const chats = (data?.chats || []).filter(c => c.chatId);
     chatSelect.innerHTML = '<option value="">-- Seleziona chat --</option>';
     chats.forEach(c => {
       const opt = document.createElement('option');
@@ -456,6 +473,10 @@ async function loadChats() {
     });
     if (chats.length === 0) {
       chatSelect.innerHTML = '<option value="">Nessuna chat trovata</option>';
+    }
+    // Auto-save if only one chat and none selected yet
+    if (chats.length === 1 && !settings.greenapi_chat_id) {
+      chatSelect.selectedIndex = 1;
     }
   } catch (ex) {
     chatSelect.innerHTML = `<option value="">Errore: ${ex.message}</option>`;

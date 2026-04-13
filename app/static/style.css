@@ -293,17 +293,65 @@ input:focus, select:focus { border-color: var(--accent); }
   max-width: 500px;
 }
 
-/* ---- QR section ---- */
-.qr-section {
+/* ---- Setup steps ---- */
+.setup-step {
+  display: flex;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 28px;
+  padding: 20px 22px;
+  max-width: 560px;
+}
+
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.step-body form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 100%;
+}
+
+details.advanced-toggle summary,
+.advanced-toggle {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---- QR section ---- */
+.qr-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  max-width: 500px;
+  gap: 14px;
 }
 
 .qr-section h3 { font-size: 1rem; color: var(--text-dim); }
@@ -322,15 +370,10 @@ input:focus, select:focus { border-color: var(--accent); }
 .qr-status { font-size: 0.9rem; color: var(--text-dim); text-align: center; }
 
 /* ---- Chat section ---- */
-.chat-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
+#chat-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 500px;
 }
 
 .chat-section h3 { font-size: 1rem; font-weight: 600; }
