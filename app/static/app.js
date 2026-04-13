@@ -17,8 +17,21 @@ async function api(method, path, body) {
   const r = await fetch(path, opts);
   if (r.status === 401) { logout(); return null; }
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json.detail || `HTTP ${r.status}`);
+  if (!r.ok) throw new Error(json.detail || `Errore HTTP ${r.status}`);
   return json;
+}
+
+// ---------- Button loading helper ----------
+function setLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.dataset.origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Attendere...';
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.origText || btn.textContent;
+  }
 }
 
 // ---------- Auth ----------
@@ -43,7 +56,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 document.getElementById('form-login').addEventListener('submit', async e => {
   e.preventDefault();
   const err = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
   err.textContent = '';
+  setLoading(btn, true);
   try {
     const data = await api('POST', '/auth/login', {
       email: document.getElementById('login-email').value,
@@ -55,13 +70,17 @@ document.getElementById('form-login').addEventListener('submit', async e => {
     await initApp();
   } catch (ex) {
     err.textContent = ex.message;
+  } finally {
+    setLoading(btn, false);
   }
 });
 
 document.getElementById('form-register').addEventListener('submit', async e => {
   e.preventDefault();
   const err = document.getElementById('reg-error');
+  const btn = document.getElementById('btn-register');
   err.textContent = '';
+  setLoading(btn, true);
   try {
     const data = await api('POST', '/auth/register', {
       email: document.getElementById('reg-email').value,
@@ -73,6 +92,8 @@ document.getElementById('form-register').addEventListener('submit', async e => {
     await initApp();
   } catch (ex) {
     err.textContent = ex.message;
+  } finally {
+    setLoading(btn, false);
   }
 });
 
@@ -86,7 +107,8 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.getElementById(`page-${name}`).classList.add('active');
-  document.querySelector(`.nav-link[data-page="${name}"]`).classList.add('active');
+  const navEl = document.querySelector(`.nav-link[data-page="${name}"]`);
+  if (navEl) navEl.classList.add('active');
 }
 
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -94,7 +116,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     const page = link.dataset.page;
     showPage(page);
     if (page === 'dashboard') refreshDashboard();
-    if (page === 'whatsapp') populateWAForm();
+    if (page === 'whatsapp') loadWhatsAppPage();
     if (page === 'ipratico') populateIPForm();
     if (page === 'schedule') populateScheduleForm();
   });
@@ -112,30 +134,27 @@ async function initApp() {
 
 // ---------- Dashboard ----------
 async function refreshDashboard() {
-  // WhatsApp status
   const waEl = document.getElementById('dash-wa-status');
+  const ipEl = document.getElementById('dash-ip-status');
+  const schedEl = document.getElementById('dash-schedule');
+  const hintBox = document.getElementById('setup-hint');
+  const hintText = document.getElementById('setup-hint-text');
+
+  // Reload settings
   try {
-    const data = await api('GET', '/api/whatsapp/status');
-    if (!data) return;
-    const state = data.stateInstance || data.state || 'unknown';
-    if (state === 'authorized') {
-      waEl.textContent = 'Connesso ✓';
-      waEl.className = 'badge badge-green';
-    } else if (state === 'notAuthorized') {
-      waEl.textContent = 'Non connesso';
-      waEl.className = 'badge badge-red';
-    } else {
-      waEl.textContent = state;
-      waEl.className = 'badge badge-yellow';
-    }
-  } catch {
-    waEl.textContent = 'Non configurato';
-    waEl.className = 'badge badge-gray';
+    settings = await api('GET', '/api/settings') || settings;
+  } catch { /* use cached */ }
+
+  // iPratico status
+  if (settings.ipratico_email && settings.has_ipratico_password) {
+    ipEl.textContent = settings.ipratico_email;
+    ipEl.className = 'badge badge-green';
+  } else {
+    ipEl.textContent = 'Non configurato';
+    ipEl.className = 'badge badge-gray';
   }
 
-  // Schedule
-  const schedEl = document.getElementById('dash-schedule');
-  settings = await api('GET', '/api/settings') || settings;
+  // Schedule status
   if (settings.is_active) {
     schedEl.textContent = `Attivo — ${settings.send_time} (${settings.timezone})`;
     schedEl.className = 'badge badge-green';
@@ -143,31 +162,73 @@ async function refreshDashboard() {
     schedEl.textContent = 'Disattivo';
     schedEl.className = 'badge badge-gray';
   }
+
+  // WhatsApp status
+  if (!settings.greenapi_id_instance || !settings.has_greenapi_token) {
+    waEl.textContent = 'Non configurato';
+    waEl.className = 'badge badge-gray';
+  } else {
+    try {
+      const data = await api('GET', '/api/whatsapp/status');
+      if (!data) return;
+      const state = data.stateInstance || data.state || 'unknown';
+      if (state === 'authorized') {
+        waEl.textContent = 'Connesso ✓';
+        waEl.className = 'badge badge-green';
+      } else if (state === 'notAuthorized') {
+        waEl.textContent = 'Non connesso';
+        waEl.className = 'badge badge-red';
+      } else {
+        waEl.textContent = state;
+        waEl.className = 'badge badge-yellow';
+      }
+    } catch {
+      waEl.textContent = 'Errore connessione';
+      waEl.className = 'badge badge-red';
+    }
+  }
+
+  // Setup hint
+  const missing = [];
+  if (!settings.ipratico_email || !settings.has_ipratico_password) missing.push('credenziali iPratico');
+  if (!settings.has_greenapi_token) missing.push('Green API (WhatsApp)');
+  if (!settings.greenapi_chat_id) missing.push('chat di destinazione');
+
+  if (missing.length) {
+    hintText.textContent = `Configura: ${missing.join(', ')} per iniziare.`;
+    hintBox.classList.remove('hidden');
+  } else {
+    hintBox.classList.add('hidden');
+  }
 }
 
 document.getElementById('btn-preview').addEventListener('click', async () => {
   const box = document.getElementById('preview-box');
   const fb = document.getElementById('dash-feedback');
+  const btn = document.getElementById('btn-preview');
   box.classList.add('hidden');
-  fb.textContent = 'Caricamento...';
-  fb.className = 'feedback';
+  fb.textContent = '';
+  setLoading(btn, true);
   try {
     const data = await api('POST', '/api/report/preview');
     if (!data) return;
     box.textContent = data.messages.join('\n\n---\n\n');
     box.classList.remove('hidden');
-    fb.textContent = '';
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
 document.getElementById('btn-send-now').addEventListener('click', async () => {
   const fb = document.getElementById('dash-feedback');
+  const btn = document.getElementById('btn-send-now');
   if (!confirm('Inviare i messaggi ora?')) return;
   fb.textContent = 'Invio in corso...';
   fb.className = 'feedback';
+  setLoading(btn, true);
   try {
     const data = await api('POST', '/api/report/send-now');
     if (!data) return;
@@ -176,6 +237,8 @@ document.getElementById('btn-send-now').addEventListener('click', async () => {
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
@@ -183,31 +246,45 @@ document.getElementById('btn-send-now').addEventListener('click', async () => {
 function populateIPForm() {
   document.getElementById('ip-email').value = settings.ipratico_email || '';
   document.getElementById('ip-channel').value = settings.ipratico_channel || 'lct_20572';
+  // Show indicator if password is already saved
+  const pwInput = document.getElementById('ip-password');
+  pwInput.placeholder = settings.has_ipratico_password
+    ? '(password salvata — lascia vuoto per non modificare)'
+    : 'Inserisci password iPratico';
 }
 
 document.getElementById('form-ipratico').addEventListener('submit', async e => {
   e.preventDefault();
   const fb = document.getElementById('ip-feedback');
-  fb.textContent = 'Salvataggio...';
-  fb.className = 'feedback';
-  const body = { ipratico_email: document.getElementById('ip-email').value, ipratico_channel: document.getElementById('ip-channel').value };
+  const btn = document.getElementById('btn-save-ip');
+  fb.textContent = '';
+  setLoading(btn, true);
+  const body = {
+    ipratico_email: document.getElementById('ip-email').value,
+    ipratico_channel: document.getElementById('ip-channel').value,
+  };
   const pw = document.getElementById('ip-password').value;
   if (pw) body.ipratico_password = pw;
   try {
     settings = await api('PUT', '/api/settings', body) || settings;
-    fb.textContent = '✓ Salvato';
+    fb.textContent = '✓ Credenziali salvate';
     fb.className = 'feedback ok';
     document.getElementById('ip-password').value = '';
+    populateIPForm(); // refresh placeholder
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
 document.getElementById('btn-test-ipratico').addEventListener('click', async () => {
   const fb = document.getElementById('ip-feedback');
+  const btn = document.getElementById('btn-test-ipratico');
   fb.textContent = 'Test in corso...';
   fb.className = 'feedback';
+  setLoading(btn, true);
   try {
     await api('POST', '/api/ipratico/test');
     fb.textContent = '✓ Connessione riuscita';
@@ -215,41 +292,61 @@ document.getElementById('btn-test-ipratico').addEventListener('click', async () 
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
 // ---------- WhatsApp page ----------
+async function loadWhatsAppPage() {
+  populateWAForm();
+  // If credentials are saved, auto-check status
+  if (settings.greenapi_id_instance && settings.has_greenapi_token) {
+    await checkWAStatus();
+  }
+}
+
 function populateWAForm() {
   document.getElementById('wa-instance').value = settings.greenapi_id_instance || '';
   document.getElementById('wa-url').value = settings.greenapi_api_url || 'https://7107.api.greenapi.com';
+  document.getElementById('wa-token').placeholder = settings.has_greenapi_token
+    ? '(token salvato — lascia vuoto per non modificare)'
+    : 'Inserisci API token Green API';
   if (settings.greenapi_chat_id) {
     document.getElementById('current-chat').textContent =
       `Chat attuale: ${settings.greenapi_chat_name || settings.greenapi_chat_id}`;
   }
 }
 
-document.getElementById('form-whatsapp-creds').addEventListener('submit', async e => {
-  e.preventDefault();
+async function checkWAStatus() {
+  stopQRPoll();
+  const qrSection = document.getElementById('qr-section');
+  const chatSection = document.getElementById('chat-section');
+  const qrStatus = document.getElementById('qr-status');
+  const qrImg = document.getElementById('qr-img');
   const fb = document.getElementById('wa-creds-feedback');
-  fb.textContent = 'Salvataggio...';
+
+  fb.textContent = 'Verifica stato connessione...';
   fb.className = 'feedback';
-  const body = {
-    greenapi_id_instance: document.getElementById('wa-instance').value,
-    greenapi_api_url: document.getElementById('wa-url').value,
-  };
-  const tok = document.getElementById('wa-token').value;
-  if (tok) body.greenapi_api_token = tok;
+
   try {
-    settings = await api('PUT', '/api/settings', body) || settings;
-    fb.textContent = '✓ Salvato';
-    fb.className = 'feedback ok';
-    document.getElementById('wa-token').value = '';
-    startQRFlow();
-  } catch (ex) {
-    fb.textContent = '✗ ' + ex.message;
-    fb.className = 'feedback err';
-  }
-});
+    const statusData = await api('GET', '/api/whatsapp/status');
+    const state = statusData?.stateInstance || statusData?.state;
+    if (state === 'authorized') {
+      fb.textContent = '';
+      qrSection.classList.remove('hidden');
+      qrImg.style.display = 'none';
+      qrStatus.textContent = '✓ WhatsApp connesso';
+      qrStatus.style.color = 'var(--success)';
+      chatSection.classList.remove('hidden');
+      await loadChats();
+      return;
+    }
+  } catch { /* will try QR */ }
+
+  fb.textContent = '';
+  await startQRFlow();
+}
 
 async function startQRFlow() {
   stopQRPoll();
@@ -257,38 +354,29 @@ async function startQRFlow() {
   const chatSection = document.getElementById('chat-section');
   const qrStatus = document.getElementById('qr-status');
   const qrImg = document.getElementById('qr-img');
+
   chatSection.classList.add('hidden');
-
-  // Check if already connected
-  try {
-    const statusData = await api('GET', '/api/whatsapp/status');
-    const state = statusData?.stateInstance || statusData?.state;
-    if (state === 'authorized') {
-      qrSection.classList.remove('hidden');
-      qrStatus.textContent = '✓ Connesso a WhatsApp';
-      qrStatus.style.color = 'var(--success)';
-      qrImg.style.display = 'none';
-      await loadChats();
-      return;
-    }
-  } catch { /* will try QR anyway */ }
-
-  // Show QR
   qrSection.classList.remove('hidden');
   qrImg.style.display = '';
   qrStatus.textContent = 'Caricamento QR...';
   qrStatus.style.color = '';
+
   try {
     const qrData = await api('GET', '/api/whatsapp/qr');
-    if (qrData?.type === 'alreadyLogged') {
+    if (!qrData) return;
+    if (qrData.type === 'alreadyLogged') {
       qrStatus.textContent = '✓ Già connesso';
       qrStatus.style.color = 'var(--success)';
       qrImg.style.display = 'none';
       await loadChats();
       return;
     }
-    if (qrData?.message) {
+    if (qrData.message) {
       qrImg.src = `data:image/png;base64,${qrData.message}`;
+      qrStatus.textContent = 'Scansiona con WhatsApp sul tuo telefono...';
+    } else {
+      qrStatus.textContent = 'QR non disponibile — riprova tra qualche secondo';
+      return;
     }
   } catch (ex) {
     qrStatus.textContent = '✗ ' + ex.message;
@@ -297,7 +385,6 @@ async function startQRFlow() {
   }
 
   // Poll until authorized
-  qrStatus.textContent = 'In attesa di scansione...';
   qrPollTimer = setInterval(async () => {
     try {
       const s = await api('GET', '/api/whatsapp/status');
@@ -317,11 +404,45 @@ function stopQRPoll() {
   if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
 }
 
+document.getElementById('form-whatsapp-creds').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fb = document.getElementById('wa-creds-feedback');
+  const btn = document.getElementById('btn-save-wa');
+  fb.textContent = '';
+  setLoading(btn, true);
+  const body = {
+    greenapi_id_instance: document.getElementById('wa-instance').value,
+    greenapi_api_url: document.getElementById('wa-url').value,
+  };
+  const tok = document.getElementById('wa-token').value;
+  if (tok) body.greenapi_api_token = tok;
+  try {
+    settings = await api('PUT', '/api/settings', body) || settings;
+    fb.textContent = '✓ Credenziali salvate';
+    fb.className = 'feedback ok';
+    document.getElementById('wa-token').value = '';
+    populateWAForm();
+  } catch (ex) {
+    fb.textContent = '✗ ' + ex.message;
+    fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
+  }
+});
+
+document.getElementById('btn-show-qr').addEventListener('click', async () => {
+  await startQRFlow();
+});
+
+document.getElementById('btn-refresh-qr').addEventListener('click', async () => {
+  await startQRFlow();
+});
+
 async function loadChats() {
   const chatSection = document.getElementById('chat-section');
   const chatSelect = document.getElementById('chat-select');
   chatSection.classList.remove('hidden');
-  chatSelect.innerHTML = '<option value="">-- Caricamento... --</option>';
+  chatSelect.innerHTML = '<option value="">Caricamento...</option>';
   try {
     const data = await api('GET', '/api/whatsapp/chats');
     const chats = data?.chats || [];
@@ -333,6 +454,9 @@ async function loadChats() {
       if (c.chatId === settings.greenapi_chat_id) opt.selected = true;
       chatSelect.appendChild(opt);
     });
+    if (chats.length === 0) {
+      chatSelect.innerHTML = '<option value="">Nessuna chat trovata</option>';
+    }
   } catch (ex) {
     chatSelect.innerHTML = `<option value="">Errore: ${ex.message}</option>`;
   }
@@ -340,19 +464,21 @@ async function loadChats() {
 
 document.getElementById('btn-save-chat').addEventListener('click', async () => {
   const fb = document.getElementById('chat-feedback');
+  const btn = document.getElementById('btn-save-chat');
   const val = document.getElementById('chat-select').value;
-  if (!val) return;
+  if (!val) { fb.textContent = 'Seleziona una chat prima di salvare'; fb.className = 'feedback err'; return; }
   const { chatId, name } = JSON.parse(val);
-  fb.textContent = 'Salvataggio...';
-  fb.className = 'feedback';
+  setLoading(btn, true);
   try {
     settings = await api('PUT', '/api/settings', { greenapi_chat_id: chatId, greenapi_chat_name: name }) || settings;
-    fb.textContent = '✓ Chat salvata';
+    fb.textContent = `✓ Chat salvata: ${name}`;
     fb.className = 'feedback ok';
     document.getElementById('current-chat').textContent = `Chat attuale: ${name}`;
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
@@ -361,26 +487,30 @@ function populateScheduleForm() {
   document.getElementById('sched-time').value = settings.send_time || '01:00';
   document.getElementById('sched-active').checked = !!settings.is_active;
   const tzEl = document.getElementById('sched-tz');
-  tzEl.value = settings.timezone || 'Europe/Rome';
+  if (settings.timezone) tzEl.value = settings.timezone;
   if (!tzEl.value) tzEl.value = 'Europe/Rome';
 }
 
 document.getElementById('form-schedule').addEventListener('submit', async e => {
   e.preventDefault();
   const fb = document.getElementById('sched-feedback');
-  fb.textContent = 'Salvataggio...';
-  fb.className = 'feedback';
+  const btn = document.getElementById('btn-save-sched');
+  setLoading(btn, true);
   try {
     settings = await api('PUT', '/api/settings', {
       send_time: document.getElementById('sched-time').value,
       timezone: document.getElementById('sched-tz').value,
       is_active: document.getElementById('sched-active').checked,
     }) || settings;
-    fb.textContent = '✓ Orario salvato';
+    fb.textContent = settings.is_active
+      ? `✓ Report attivo — invio ogni giorno alle ${settings.send_time}`
+      : '✓ Invio automatico disattivato';
     fb.className = 'feedback ok';
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;
     fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
   }
 });
 
