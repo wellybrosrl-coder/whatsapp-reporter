@@ -1,13 +1,15 @@
 """Green API proxy routes: QR code, connection status, chat list."""
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import httpx
 
 from app.auth import get_current_user
-from app.crypto import decrypt
+from app.crypto import decrypt, encrypt
 from app.database import get_db
 from app.models import User
 from app.settings_routes import _get_settings
@@ -27,6 +29,45 @@ async def _green_api_get(path: str, settings) -> dict:
     if r.status_code >= 400:
         raise HTTPException(status_code=502, detail=f"Green API error {r.status_code}: {r.text[:200]}")
     return r.json()
+
+
+@router.post("/setup")
+async def setup_whatsapp(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Auto-provision a Green API instance for this user via the partner API.
+
+    If credentials already exist, returns immediately. Otherwise creates a new
+    instance and persists the credentials (encrypted) to the user's settings.
+    """
+    s = await _get_settings(current_user.id, db)
+    if s.greenapi_id_instance and s.greenapi_api_token_enc:
+        return {"status": "existing"}
+
+    partner_token = os.environ.get("GREENAPI_PARTNER_TOKEN")
+    if not partner_token:
+        raise HTTPException(
+            status_code=503,
+            detail="WhatsApp auto-setup not available (partner token not configured)"
+        )
+
+    from app.greenapi_partner import create_instance
+    try:
+        data = await create_instance(partner_token, f"user_{current_user.id}")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Green API partner error {exc.response.status_code}: {exc.response.text[:200]}"
+        )
+
+    s.greenapi_id_instance = str(data["idInstance"])
+    s.greenapi_api_token_enc = encrypt(data["apiTokenInstance"])
+    s.greenapi_api_url = data.get("apiUrl") or "https://api.green-api.com"
+    await db.commit()
+    await db.refresh(s)
+
+    return {"status": "created", "idInstance": s.greenapi_id_instance}
 
 
 @router.get("/qr")

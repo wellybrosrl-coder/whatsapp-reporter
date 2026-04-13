@@ -164,7 +164,7 @@ async function refreshDashboard() {
   }
 
   // WhatsApp status
-  if (!settings.greenapi_id_instance || !settings.has_greenapi_token) {
+  if (!settings.greenapi_id_instance) {
     waEl.textContent = 'Non configurato';
     waEl.className = 'badge badge-gray';
   } else {
@@ -191,7 +191,7 @@ async function refreshDashboard() {
   // Setup hint
   const missing = [];
   if (!settings.ipratico_email || !settings.has_ipratico_password) missing.push('credenziali iPratico');
-  if (!settings.has_greenapi_token) missing.push('Green API (WhatsApp)');
+  if (!settings.greenapi_id_instance) missing.push('WhatsApp (scansiona QR)');
   if (!settings.greenapi_chat_id) missing.push('chat di destinazione');
 
   if (missing.length) {
@@ -299,24 +299,30 @@ document.getElementById('btn-test-ipratico').addEventListener('click', async () 
 
 // ---------- WhatsApp page ----------
 async function loadWhatsAppPage() {
-  populateWAForm();
-  // If credentials saved, auto-check status and show current state
-  if (settings.greenapi_id_instance && settings.has_greenapi_token) {
-    showQRStep();
-    await checkAndShowWAState();
-  }
-}
+  const qrHint = document.getElementById('step-qr-hint');
+  const qrSection = document.getElementById('qr-section');
+  qrSection.classList.add('hidden');
+  qrHint.textContent = 'Preparazione connessione in corso...';
+  qrHint.classList.remove('hidden');
 
-function populateWAForm() {
-  document.getElementById('wa-instance').value = settings.greenapi_id_instance || '';
-  document.getElementById('wa-url').value = settings.greenapi_api_url || 'https://7107.api.greenapi.com';
-  document.getElementById('wa-token').placeholder = settings.has_greenapi_token
-    ? '(token salvato — lascia vuoto per non modificare)'
-    : 'Incolla qui il token dal dashboard Green API';
+  // Restore current chat display
   if (settings.greenapi_chat_id) {
     document.getElementById('current-chat').textContent =
       `Chat attuale: ${settings.greenapi_chat_name || settings.greenapi_chat_id}`;
   }
+
+  try {
+    await api('POST', '/api/whatsapp/setup');
+    // Refresh settings so credentials are reflected
+    settings = await api('GET', '/api/settings') || settings;
+  } catch (ex) {
+    qrHint.textContent = '✗ ' + ex.message;
+    return;
+  }
+
+  qrHint.classList.add('hidden');
+  showQRStep();
+  await checkAndShowWAState();
 }
 
 function showQRStep() {
@@ -406,52 +412,6 @@ async function startQRFlow() {
 function stopQRPoll() {
   if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
 }
-
-// Single button: save credentials AND start QR flow
-document.getElementById('form-whatsapp-creds').addEventListener('submit', async e => {
-  e.preventDefault();
-  const fb = document.getElementById('wa-creds-feedback');
-  const btn = document.getElementById('btn-connect-wa');
-  fb.textContent = '';
-  setLoading(btn, true);
-
-  const body = {
-    greenapi_id_instance: document.getElementById('wa-instance').value.trim(),
-    greenapi_api_url: document.getElementById('wa-url').value.trim() || 'https://7107.api.greenapi.com',
-  };
-  const tok = document.getElementById('wa-token').value.trim();
-  if (tok) body.greenapi_api_token = tok;
-
-  if (!body.greenapi_id_instance) {
-    fb.textContent = '✗ Inserisci l\'ID istanza';
-    fb.className = 'feedback err';
-    setLoading(btn, false);
-    return;
-  }
-  if (!tok && !settings.has_greenapi_token) {
-    fb.textContent = '✗ Inserisci il token API';
-    fb.className = 'feedback err';
-    setLoading(btn, false);
-    return;
-  }
-
-  try {
-    settings = await api('PUT', '/api/settings', body) || settings;
-    fb.textContent = '✓ Credenziali salvate — caricamento QR...';
-    fb.className = 'feedback ok';
-    document.getElementById('wa-token').value = '';
-    populateWAForm();
-    // Immediately show QR
-    showQRStep();
-    await startQRFlow();
-    fb.textContent = '';
-  } catch (ex) {
-    fb.textContent = '✗ ' + ex.message;
-    fb.className = 'feedback err';
-  } finally {
-    setLoading(btn, false);
-  }
-});
 
 document.getElementById('btn-refresh-qr').addEventListener('click', async () => {
   await startQRFlow();
