@@ -5,6 +5,12 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+DEFAULT_MSG_TEMPLATES = {
+    "day": "📊 Incassi del giorno:\n📆 Data: {{data}}\n💰 Vendite: €{{vendite}}",
+    "month": "📆 Totale mese di {{mese}}:\n💰 Vendite: €{{vendite_mese}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €",
+    "month_closed": "🎯 MESE CHIUSO - {{mese}}:\n💰 Vendite totali: €{{vendite_totali}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €",
+}
+
 from app.database import Base
 
 
@@ -56,3 +62,18 @@ class UserSettings(Base):
     )
 
     user: Mapped[User] = relationship("User", back_populates="settings")
+
+
+class UserMessage(Base):
+    """A user-defined message block: template text + data type + send frequency."""
+    __tablename__ = "user_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String, default="")
+    template: Mapped[str] = mapped_column(String, default="")
+    # "day" | "month" | "month_closed" — drives which iPratico data is fetched
+    data_type: Mapped[str] = mapped_column(String, default="day")
+    # "daily" | "weekly" | "monthly" | "disabled"
+    freq: Mapped[str] = mapped_column(String, default="daily")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)

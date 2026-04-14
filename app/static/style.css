@@ -695,18 +695,76 @@ details.advanced-toggle summary,
 .msg-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 14px 20px;
+  padding: 12px 16px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border);
 }
 
-.msg-card-header h3 {
+/* Title input inside card header */
+.msg-title-input {
+  flex: 1;
+  min-width: 120px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border2);
+  color: var(--text);
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text);
+  font-family: var(--font);
+  padding: 4px 0;
+  outline: none;
+}
+.msg-title-input:focus { border-bottom-color: var(--green); }
+.msg-title-input::placeholder { color: var(--text-muted); font-weight: 400; }
+
+.msg-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Type select inside card header */
+.msg-type-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  padding: 4px 20px 4px 8px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238696A0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+/* Delete button */
+.btn-delete-msg {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: color .15s, background .15s;
+  flex-shrink: 0;
+}
+.btn-delete-msg:hover { color: var(--danger); background: rgba(241,92,109,.1); }
+
+/* Empty state */
+.msg-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: 32px 20px;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
 }
 
 .freq-row { display: flex; align-items: center; gap: 8px; }

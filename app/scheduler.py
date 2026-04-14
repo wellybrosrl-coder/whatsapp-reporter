@@ -18,6 +18,7 @@ def _job_id(user_id: int) -> str:
 
 async def _run_report_async(user_id: int) -> None:
     from app.database import SessionLocal
+    from app.messages_routes import get_user_messages
     from app.models import UserSettings
     from app.reporter import run_report
     from sqlalchemy import select
@@ -28,9 +29,10 @@ async def _run_report_async(user_id: int) -> None:
         if settings is None or not settings.is_active:
             logger.info("Job for user %d skipped (inactive or missing settings)", user_id)
             return
+        msgs = await get_user_messages(user_id, db)
 
     try:
-        messages = await run_report(settings)
+        messages = await run_report(settings, msgs)
         logger.info("Report sent for user %d: %d messages", user_id, len(messages))
     except Exception:
         logger.exception("Report failed for user %d", user_id)

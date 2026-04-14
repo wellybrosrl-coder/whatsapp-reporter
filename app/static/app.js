@@ -545,36 +545,181 @@ document.getElementById('form-schedule').addEventListener('submit', async e => {
 // ---------- Messages page ----------
 
 const DEFAULT_TEMPLATES = {
-  day: '📊 Incassi del giorno:\n📆 Data: {{data}}\n💰 Vendite: €{{vendite}}',
-  month: '📆 Totale mese di {{mese}}:\n💰 Vendite: €{{vendite_mese}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
-  monthClosed: '🎯 MESE CHIUSO - {{mese}}:\n💰 Vendite totali: €{{vendite_totali}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
+  day:          '📊 Incassi del giorno:\n📆 Data: {{data}}\n💰 Vendite: €{{vendite}}',
+  month:        '📆 Totale mese di {{mese}}:\n💰 Vendite: €{{vendite_mese}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
+  month_closed: '🎯 MESE CHIUSO - {{mese}}:\n💰 Vendite totali: €{{vendite_totali}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
 };
 
-function populateMessagesForm() {
-  document.getElementById('template-day').value = settings.template_day || '';
-  document.getElementById('template-month').value = settings.template_month || '';
-  document.getElementById('template-month-closed').value = settings.template_month_closed || '';
-  document.getElementById('freq-day').value = settings.freq_day || 'daily';
-  document.getElementById('freq-month').value = settings.freq_month || 'daily';
-  document.getElementById('freq-month-closed').value = settings.freq_month_closed || 'monthly';
-}
+const TAGS_BY_TYPE = {
+  day:          ['data', 'vendite'],
+  month:        ['mese', 'vendite_mese', 'vendite_anno_prec', 'variazione_pct', 'variazione_eur', 'anno_prec'],
+  month_closed: ['mese', 'vendite_totali', 'vendite_anno_prec', 'variazione_pct', 'variazione_eur', 'anno_prec'],
+};
 
-function insertTag(textareaId, tag) {
-  const ta = document.getElementById(textareaId);
-  if (!ta) return;
-  const start = ta.selectionStart;
-  const end = ta.selectionEnd;
-  const insert = `{{${tag}}}`;
-  ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = start + insert.length;
-  ta.focus();
-}
+const TYPE_LABELS = {
+  day: 'Giornaliero',
+  month: 'Mensile MTD',
+  month_closed: 'Mese chiuso',
+};
 
-// Tag chip click → insert at cursor
-document.querySelectorAll('.tag-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    insertTag(chip.dataset.target, chip.dataset.tag);
+function _buildTagBar(dataType) {
+  const tags = TAGS_BY_TYPE[dataType] || [];
+  const bar = document.createElement('div');
+  bar.className = 'tag-bar';
+  const hint = document.createElement('span');
+  hint.className = 'tag-hint';
+  hint.textContent = 'Tag:';
+  bar.appendChild(hint);
+  tags.forEach(tag => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip';
+    chip.dataset.tag = tag;
+    chip.textContent = `{{${tag}}}`;
+    bar.appendChild(chip);
   });
+  return bar;
+}
+
+function _wireTagChips(card) {
+  const ta = card.querySelector('.msg-template');
+  card.querySelector('.tag-bar').querySelectorAll('.tag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const insert = `{{${chip.dataset.tag}}}`;
+      ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + insert.length;
+      ta.focus();
+    });
+  });
+}
+
+function buildMsgCard(msg) {
+  const card = document.createElement('div');
+  card.className = 'msg-card';
+  card.dataset.msgId = msg.id;
+
+  // ── Header ──
+  const header = document.createElement('div');
+  header.className = 'msg-card-header';
+
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.className = 'msg-title-input';
+  titleInput.placeholder = 'Titolo messaggio';
+  titleInput.value = msg.title || '';
+
+  const controls = document.createElement('div');
+  controls.className = 'msg-card-controls';
+
+  const typeSelect = document.createElement('select');
+  typeSelect.className = 'msg-type-select';
+  Object.entries(TYPE_LABELS).forEach(([val, label]) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    if (val === msg.data_type) opt.selected = true;
+    typeSelect.appendChild(opt);
+  });
+
+  const freqSelect = document.createElement('select');
+  freqSelect.className = 'freq-select msg-freq-select';
+  [['daily','Ogni giorno'],['weekly','Ogni lunedì'],['monthly','Il 1° del mese'],['disabled','Disattivato']].forEach(([val, label]) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    if (val === msg.freq) opt.selected = true;
+    freqSelect.appendChild(opt);
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'btn-delete-msg';
+  delBtn.title = 'Elimina messaggio';
+  delBtn.textContent = '✕';
+
+  controls.append(typeSelect, freqSelect, delBtn);
+  header.append(titleInput, controls);
+
+  // ── Tag bar ──
+  const tagBar = _buildTagBar(msg.data_type);
+
+  // ── Textarea ──
+  const ta = document.createElement('textarea');
+  ta.className = 'msg-template';
+  ta.rows = 4;
+  ta.value = msg.template || '';
+
+  card.append(header, tagBar, ta);
+
+  // ── Events ──
+  typeSelect.addEventListener('change', () => {
+    const newTagBar = _buildTagBar(typeSelect.value);
+    card.replaceChild(newTagBar, card.querySelector('.tag-bar'));
+    _wireTagChips(card);
+  });
+
+  delBtn.addEventListener('click', async () => {
+    if (!confirm('Eliminare questo messaggio?')) return;
+    try {
+      await api('DELETE', `/api/messages/${msg.id}`);
+      card.remove();
+      if (!document.querySelector('#messages-container .msg-card')) {
+        document.getElementById('messages-container').innerHTML =
+          '<div class="msg-empty">Nessun messaggio. Clicca "+ Aggiungi messaggio" per crearne uno.</div>';
+      }
+    } catch (ex) {
+      alert('Errore: ' + ex.message);
+    }
+  });
+
+  _wireTagChips(card);
+  return card;
+}
+
+async function loadMessages() {
+  const container = document.getElementById('messages-container');
+  container.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem">Caricamento...</p>';
+  try {
+    const msgs = await api('GET', '/api/messages') || [];
+    container.innerHTML = '';
+    if (msgs.length === 0) {
+      container.innerHTML = '<div class="msg-empty">Nessun messaggio. Clicca "+ Aggiungi messaggio" per crearne uno.</div>';
+    } else {
+      msgs.forEach(m => container.appendChild(buildMsgCard(m)));
+    }
+  } catch (ex) {
+    container.innerHTML = `<p class="feedback err">✗ ${ex.message}</p>`;
+  }
+}
+
+// Called from nav click
+function populateMessagesForm() {
+  loadMessages();
+}
+
+document.getElementById('btn-add-message').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-add-message');
+  setLoading(btn, true);
+  try {
+    const msg = await api('POST', '/api/messages', {
+      title: '📊 Nuovo messaggio',
+      template: DEFAULT_TEMPLATES.day,
+      freq: 'daily',
+      data_type: 'day',
+    });
+    const container = document.getElementById('messages-container');
+    const empty = container.querySelector('.msg-empty');
+    if (empty) empty.remove();
+    container.appendChild(buildMsgCard(msg));
+    container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (ex) {
+    document.getElementById('messages-feedback').textContent = '✗ ' + ex.message;
+    document.getElementById('messages-feedback').className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
+  }
 });
 
 document.getElementById('form-messages').addEventListener('submit', async e => {
@@ -584,40 +729,16 @@ document.getElementById('form-messages').addEventListener('submit', async e => {
   fb.textContent = '';
   setLoading(btn, true);
   try {
-    settings = await api('PUT', '/api/settings', {
-      template_day: document.getElementById('template-day').value.trim(),
-      template_month: document.getElementById('template-month').value.trim(),
-      template_month_closed: document.getElementById('template-month-closed').value.trim(),
-      freq_day: document.getElementById('freq-day').value,
-      freq_month: document.getElementById('freq-month').value,
-      freq_month_closed: document.getElementById('freq-month-closed').value,
-    }) || settings;
+    const cards = document.querySelectorAll('#messages-container .msg-card[data-msg-id]');
+    await Promise.all(Array.from(cards).map(card =>
+      api('PUT', `/api/messages/${card.dataset.msgId}`, {
+        title:     card.querySelector('.msg-title-input').value.trim(),
+        template:  card.querySelector('.msg-template').value,
+        freq:      card.querySelector('.msg-freq-select').value,
+        data_type: card.querySelector('.msg-type-select').value,
+      })
+    ));
     fb.textContent = '✓ Messaggi salvati';
-    fb.className = 'feedback ok';
-  } catch (ex) {
-    fb.textContent = '✗ ' + ex.message;
-    fb.className = 'feedback err';
-  } finally {
-    setLoading(btn, false);
-  }
-});
-
-document.getElementById('btn-reset-messages').addEventListener('click', async () => {
-  if (!confirm('Ripristinare i testi predefiniti per tutti i messaggi?')) return;
-  const fb = document.getElementById('messages-feedback');
-  const btn = document.getElementById('btn-reset-messages');
-  setLoading(btn, true);
-  try {
-    // Send empty strings — backend converts to null (= use default)
-    settings = await api('PUT', '/api/settings', {
-      template_day: '',
-      template_month: '',
-      template_month_closed: '',
-    }) || settings;
-    document.getElementById('template-day').value = '';
-    document.getElementById('template-month').value = '';
-    document.getElementById('template-month-closed').value = '';
-    fb.textContent = '✓ Testi predefiniti ripristinati';
     fb.className = 'feedback ok';
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;

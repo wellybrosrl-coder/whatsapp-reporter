@@ -1,4 +1,4 @@
-"""Message building and sending — ported from daily_whatsapp.py."""
+"""Message building and sending."""
 from __future__ import annotations
 
 import re
@@ -9,7 +9,7 @@ import httpx
 
 from app import ipratico as _ip
 from app.crypto import decrypt
-from app.models import UserSettings
+from app.models import UserMessage, UserSettings
 
 WEEKDAYS_IT = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
 MONTHS_IT = [
@@ -17,31 +17,10 @@ MONTHS_IT = [
     "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
 ]
 
-# ---------- Default templates ---------- #
 
-DEFAULT_TEMPLATE_DAY = (
-    "📊 Incassi del giorno:\n"
-    "📆 Data: {{data}}\n"
-    "💰 Vendite: €{{vendite}}"
-)
-
-DEFAULT_TEMPLATE_MONTH = (
-    "📆 Totale mese di {{mese}}:\n"
-    "💰 Vendite: €{{vendite_mese}}\n"
-    "📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €"
-)
-
-DEFAULT_TEMPLATE_MONTH_CLOSED = (
-    "🎯 MESE CHIUSO - {{mese}}:\n"
-    "💰 Vendite totali: €{{vendite_totali}}\n"
-    "📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €"
-)
-
-
-# ---------- Template helpers ---------- #
+# ---------- Template helpers ----------
 
 def _substitute(template: str, variables: dict) -> str:
-    """Replace {{key}} placeholders; leave unknown tags unchanged."""
     def replacer(m: re.Match) -> str:
         key = m.group(1).strip()
         return str(variables[key]) if key in variables else m.group(0)
@@ -49,47 +28,34 @@ def _substitute(template: str, variables: dict) -> str:
 
 
 def _should_send(freq: str | None, today: date) -> bool:
-    """Return True if this message type should fire today given its frequency."""
     f = (freq or "daily").lower()
     if f == "disabled":
         return False
     if f == "weekly":
-        return today.weekday() == 0  # Monday
+        return today.weekday() == 0
     if f == "monthly":
         return today.day == 1
-    return True  # "daily" or unrecognised → always send
+    return True
 
 
-# ---------- Message builders ---------- #
+# ---------- Variable builders ----------
 
-def build_day_message(sales_date: date, total: float, template: str | None = None) -> str:
-    day_name = WEEKDAYS_IT[sales_date.weekday()]
-    month_name = MONTHS_IT[sales_date.month - 1]
-    variables = {
-        "data": f"{day_name} {sales_date.day} {month_name} {sales_date.year}",
+def _day_vars(sales_date: date, total: float) -> dict:
+    return {
+        "data": f"{WEEKDAYS_IT[sales_date.weekday()]} {sales_date.day} {MONTHS_IT[sales_date.month - 1]} {sales_date.year}",
         "vendite": f"{total:.2f}",
     }
-    return _substitute(template or DEFAULT_TEMPLATE_DAY, variables)
 
 
-def build_month_message(
-    ref_date: date,
-    current_total: float,
-    prev_total: float,
-    mode: str = "month",
-    template: str | None = None,
-) -> str:
+def _month_vars(ref_date: date, current_total: float, prev_total: float) -> dict:
     month_name = MONTHS_IT[ref_date.month - 1].capitalize()
     try:
         delta_pct = ((current_total - prev_total) / prev_total * 100) if prev_total else 0.0
-        delta_eur = current_total - prev_total
         variazione_pct = f"{delta_pct:+.1f}%"
-        variazione_eur = f"{delta_eur:+.2f}"
+        variazione_eur = f"{current_total - prev_total:+.2f}"
     except Exception:
-        variazione_pct = "n/d"
-        variazione_eur = "n/d"
-
-    variables = {
+        variazione_pct = variazione_eur = "n/d"
+    return {
         "mese": f"{month_name} {ref_date.year}",
         "anno_prec": str(ref_date.year - 1),
         "vendite_mese": f"{current_total:.2f}",
@@ -99,13 +65,8 @@ def build_month_message(
         "variazione_eur": variazione_eur,
     }
 
-    if template is None:
-        template = DEFAULT_TEMPLATE_MONTH_CLOSED if mode == "month_closed" else DEFAULT_TEMPLATE_MONTH
 
-    return _substitute(template, variables)
-
-
-# ---------- Green API sender ---------- #
+# ---------- Green API sender ----------
 
 async def send_whatsapp(message: str, settings: UserSettings) -> None:
     if not settings.greenapi_id_instance or not settings.greenapi_api_token_enc or not settings.greenapi_chat_id:
@@ -118,66 +79,63 @@ async def send_whatsapp(message: str, settings: UserSettings) -> None:
         r.raise_for_status()
 
 
-# ---------- Full report runner ---------- #
+# ---------- Data fetcher ----------
 
-async def run_report(settings: UserSettings) -> list[str]:
-    """Build and send messages according to per-user templates and frequencies.
-
-    Returns list of sent message texts.
-    """
-    if not settings.ipratico_email or not settings.ipratico_password_enc:
-        raise ValueError("iPratico credentials not configured")
-
-    email = settings.ipratico_email
-    password = decrypt(settings.ipratico_password_enc)
-    channel = settings.ipratico_channel or "lct_20572"
-    tz = ZoneInfo(settings.timezone or "Europe/Rome")
-
-    from datetime import datetime
-    today = datetime.now(tz).date()
+async def _fetch_data(
+    settings: UserSettings,
+    types_needed: set[str],
+    email: str,
+    password: str,
+    channel: str,
+    today: date,
+    force_month_closed: bool = False,
+) -> dict:
+    """Fetch iPratico data for the requested types. Returns keyed dict."""
+    data: dict = {}
     yesterday = today - timedelta(days=1)
 
-    client, token = await _ip.login(email, password)
+    http_client, token = await _ip.login(email, password)
     try:
-        messages: list[str] = []
+        if "day" in types_needed:
+            _, day_total = await _ip.fetch_day_sales(
+                yesterday, email, password, channel, client=http_client, token=token
+            )
+            data["day"] = (yesterday, day_total)
 
-        # Daily
-        if _should_send(settings.freq_day, today):
-            _, day_total = await _ip.fetch_day_sales(yesterday, email, password, channel, client=client, token=token)
-            day_msg = build_day_message(yesterday, day_total, settings.template_day)
-            await send_whatsapp(day_msg, settings)
-            messages.append(day_msg)
-
-        # Month-to-date vs same period last year
-        if _should_send(settings.freq_month, today):
+        if "month" in types_needed:
             start_month = today.replace(day=1)
             start_prev = start_month.replace(year=start_month.year - 1)
             end_prev = yesterday.replace(year=yesterday.year - 1)
-            current_total = await _ip.fetch_range_sales(start_month, yesterday, email, password, channel, client=client, token=token)
-            prev_total = await _ip.fetch_range_sales(start_prev, end_prev, email, password, channel, client=client, token=token)
-            month_msg = build_month_message(start_month, current_total, prev_total, mode="month", template=settings.template_month)
-            await send_whatsapp(month_msg, settings)
-            messages.append(month_msg)
+            current_total = await _ip.fetch_range_sales(
+                start_month, yesterday, email, password, channel, client=http_client, token=token
+            )
+            prev_total = await _ip.fetch_range_sales(
+                start_prev, end_prev, email, password, channel, client=http_client, token=token
+            )
+            data["month"] = (start_month, current_total, prev_total)
 
-        # Month-closed (only on 1st of month, and only if frequency allows)
-        if today.day == 1 and _should_send(settings.freq_month_closed, today):
-            last_day_prev = today - timedelta(days=1)
-            first_day_prev = last_day_prev.replace(day=1)
-            first_prev_yr = first_day_prev.replace(year=first_day_prev.year - 1)
-            last_prev_yr = last_day_prev.replace(year=last_day_prev.year - 1)
-            closed_total = await _ip.fetch_range_sales(first_day_prev, last_day_prev, email, password, channel, client=client, token=token)
-            closed_prev = await _ip.fetch_range_sales(first_prev_yr, last_prev_yr, email, password, channel, client=client, token=token)
-            closed_msg = build_month_message(first_day_prev, closed_total, closed_prev, mode="month_closed", template=settings.template_month_closed)
-            await send_whatsapp(closed_msg, settings)
-            messages.append(closed_msg)
+        if "month_closed" in types_needed and (today.day == 1 or force_month_closed):
+            last_day = today.replace(day=1) - timedelta(days=1)
+            first_day = last_day.replace(day=1)
+            first_prev_yr = first_day.replace(year=first_day.year - 1)
+            last_prev_yr = last_day.replace(year=last_day.year - 1)
+            closed_total = await _ip.fetch_range_sales(
+                first_day, last_day, email, password, channel, client=http_client, token=token
+            )
+            closed_prev = await _ip.fetch_range_sales(
+                first_prev_yr, last_prev_yr, email, password, channel, client=http_client, token=token
+            )
+            data["month_closed"] = (first_day, closed_total, closed_prev)
     finally:
-        await client.aclose()
+        await http_client.aclose()
 
-    return messages
+    return data
 
 
-async def preview_report(settings: UserSettings) -> list[str]:
-    """Build messages without sending. Respects templates but ignores frequency."""
+# ---------- Full report runner ----------
+
+async def run_report(settings: UserSettings, messages: list[UserMessage]) -> list[str]:
+    """Build and send messages according to each message's template and frequency."""
     if not settings.ipratico_email or not settings.ipratico_password_enc:
         raise ValueError("iPratico credentials not configured")
 
@@ -188,31 +146,68 @@ async def preview_report(settings: UserSettings) -> list[str]:
 
     from datetime import datetime
     today = datetime.now(tz).date()
-    yesterday = today - timedelta(days=1)
 
-    client, token = await _ip.login(email, password)
-    try:
-        messages: list[str] = []
+    types_needed = {
+        m.data_type for m in messages
+        if _should_send(m.freq, today) and not (m.data_type == "month_closed" and today.day != 1)
+    }
+    if not types_needed:
+        return []
 
-        _, day_total = await _ip.fetch_day_sales(yesterday, email, password, channel, client=client, token=token)
-        messages.append(build_day_message(yesterday, day_total, settings.template_day))
+    data = await _fetch_data(settings, types_needed, email, password, channel, today)
 
-        start_month = today.replace(day=1)
-        start_prev = start_month.replace(year=start_month.year - 1)
-        end_prev = yesterday.replace(year=yesterday.year - 1)
-        current_total = await _ip.fetch_range_sales(start_month, yesterday, email, password, channel, client=client, token=token)
-        prev_total = await _ip.fetch_range_sales(start_prev, end_prev, email, password, channel, client=client, token=token)
-        messages.append(build_month_message(start_month, current_total, prev_total, mode="month", template=settings.template_month))
+    sent: list[str] = []
+    for msg in messages:
+        if not _should_send(msg.freq, today):
+            continue
+        if msg.data_type == "day" and "day" in data:
+            text = _substitute(msg.template, _day_vars(*data["day"]))
+        elif msg.data_type == "month" and "month" in data:
+            ref, cur, prev = data["month"]
+            text = _substitute(msg.template, _month_vars(ref, cur, prev))
+        elif msg.data_type == "month_closed" and "month_closed" in data:
+            ref, cur, prev = data["month_closed"]
+            text = _substitute(msg.template, _month_vars(ref, cur, prev))
+        else:
+            continue
+        await send_whatsapp(text, settings)
+        sent.append(text)
 
-        if today.day == 1:
-            last_day_prev = today - timedelta(days=1)
-            first_day_prev = last_day_prev.replace(day=1)
-            first_prev_yr = first_day_prev.replace(year=first_day_prev.year - 1)
-            last_prev_yr = last_day_prev.replace(year=last_day_prev.year - 1)
-            closed_total = await _ip.fetch_range_sales(first_day_prev, last_day_prev, email, password, channel, client=client, token=token)
-            closed_prev = await _ip.fetch_range_sales(first_prev_yr, last_prev_yr, email, password, channel, client=client, token=token)
-            messages.append(build_month_message(first_day_prev, closed_total, closed_prev, mode="month_closed", template=settings.template_month_closed))
-    finally:
-        await client.aclose()
+    return sent
 
-    return messages
+
+# ---------- Preview (no send, ignores frequency) ----------
+
+async def preview_report(settings: UserSettings, messages: list[UserMessage]) -> list[str]:
+    """Build all messages without sending, ignoring frequency gates."""
+    if not settings.ipratico_email or not settings.ipratico_password_enc:
+        raise ValueError("iPratico credentials not configured")
+
+    email = settings.ipratico_email
+    password = decrypt(settings.ipratico_password_enc)
+    channel = settings.ipratico_channel or "lct_20572"
+    tz = ZoneInfo(settings.timezone or "Europe/Rome")
+
+    from datetime import datetime
+    today = datetime.now(tz).date()
+
+    types_needed = {m.data_type for m in messages}
+    data = await _fetch_data(
+        settings, types_needed, email, password, channel, today, force_month_closed=True
+    )
+
+    result: list[str] = []
+    for msg in messages:
+        if msg.data_type == "day" and "day" in data:
+            text = _substitute(msg.template, _day_vars(*data["day"]))
+        elif msg.data_type == "month" and "month" in data:
+            ref, cur, prev = data["month"]
+            text = _substitute(msg.template, _month_vars(ref, cur, prev))
+        elif msg.data_type == "month_closed" and "month_closed" in data:
+            ref, cur, prev = data["month_closed"]
+            text = _substitute(msg.template, _month_vars(ref, cur, prev))
+        else:
+            continue
+        result.append(text)
+
+    return result

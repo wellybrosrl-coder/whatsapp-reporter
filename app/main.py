@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app import auth, settings_routes, whatsapp_routes
+from app import auth, messages_routes, settings_routes, whatsapp_routes
 from app.scheduler import load_all_jobs, scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(settings_routes.router)
 app.include_router(whatsapp_routes.router)
+app.include_router(messages_routes.router)
 
 # Serve frontend SPA — must be last so API routes take priority
 app.mount("/", StaticFiles(directory="app/static", html=True), name="static")

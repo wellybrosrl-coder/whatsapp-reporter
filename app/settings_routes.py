@@ -169,10 +169,12 @@ async def preview_report(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.messages_routes import get_user_messages
     from app.reporter import preview_report as _preview
     s = await _get_settings(current_user.id, db)
+    msgs = await get_user_messages(current_user.id, db)
     try:
-        messages = await _preview(s)
+        messages = await _preview(s, msgs)
         return {"messages": messages}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -183,10 +185,12 @@ async def send_now(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.messages_routes import get_user_messages
     from app.reporter import run_report
     s = await _get_settings(current_user.id, db)
+    msgs = await get_user_messages(current_user.id, db)
     try:
-        messages = await run_report(s)
+        messages = await run_report(s, msgs)
         return {"sent": len(messages), "messages": messages}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
