@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>iPratico Reporter</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -13,36 +11,37 @@
     <!-- Auth screen -->
     <div id="screen-auth" class="screen">
       <div class="auth-card">
-        <div class="auth-wordmark">
-          <div class="auth-rule"></div>
-          <h1><em>iPratico</em> Reporter</h1>
-          <p>Invio automatico report vendite</p>
-          <div class="auth-rule"></div>
+        <div class="auth-header">
+          <div class="auth-logo-icon">📊</div>
+          <h1>iPratico Reporter</h1>
+          <p class="auth-subtitle">Invio automatico report vendite su WhatsApp</p>
         </div>
-        <div class="tab-bar">
-          <button class="tab-btn active" data-tab="login">Accedi</button>
-          <button class="tab-btn" data-tab="register">Crea account</button>
+        <div class="auth-body">
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="login">Accedi</button>
+            <button class="tab-btn" data-tab="register">Crea account</button>
+          </div>
+          <form id="form-login" class="tab-panel active">
+            <label>Email
+              <input type="email" id="login-email" autocomplete="email" required placeholder="nome@esempio.com" />
+            </label>
+            <label>Password
+              <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••" />
+            </label>
+            <button type="submit" class="btn-primary btn-full" id="btn-login">Accedi</button>
+            <p class="form-error" id="login-error"></p>
+          </form>
+          <form id="form-register" class="tab-panel">
+            <label>Email
+              <input type="email" id="reg-email" autocomplete="email" required placeholder="nome@esempio.com" />
+            </label>
+            <label>Password
+              <input type="password" id="reg-password" autocomplete="new-password" required placeholder="min. 8 caratteri" />
+            </label>
+            <button type="submit" class="btn-primary btn-full" id="btn-register">Crea account</button>
+            <p class="form-error" id="reg-error"></p>
+          </form>
         </div>
-        <form id="form-login" class="tab-panel active">
-          <label>Email
-            <input type="email" id="login-email" autocomplete="email" required placeholder="nome@esempio.com" />
-          </label>
-          <label>Password
-            <input type="password" id="login-password" autocomplete="current-password" required placeholder="••••••••" />
-          </label>
-          <button type="submit" class="btn-primary btn-full" id="btn-login">Accedi</button>
-          <p class="form-error" id="login-error"></p>
-        </form>
-        <form id="form-register" class="tab-panel">
-          <label>Email
-            <input type="email" id="reg-email" autocomplete="email" required placeholder="nome@esempio.com" />
-          </label>
-          <label>Password
-            <input type="password" id="reg-password" autocomplete="new-password" required placeholder="min. 8 caratteri" />
-          </label>
-          <button type="submit" class="btn-primary btn-full" id="btn-register">Crea account</button>
-          <p class="form-error" id="reg-error"></p>
-        </form>
       </div>
     </div>
 
@@ -50,280 +49,321 @@
     <div id="screen-app" class="screen hidden">
       <nav class="sidebar">
         <div class="sidebar-logo">
-          <span class="sidebar-logo-text"><em>iPratico</em> Reporter</span>
-          <span class="sidebar-logo-sub">Sales Automation</span>
+          <div class="sidebar-logo-icon">📊</div>
+          <span class="sidebar-logo-text">Reporter</span>
         </div>
-        <div class="sidebar-divider"></div>
-        <a class="nav-link active" data-page="dashboard">
-          <span class="nav-icon">🏠</span> Dashboard
-        </a>
-        <a class="nav-link" data-page="ipratico">
-          <span class="nav-icon">🏪</span> iPratico
-        </a>
-        <a class="nav-link" data-page="whatsapp">
-          <span class="nav-icon">💬</span> WhatsApp
-        </a>
-        <a class="nav-link" data-page="schedule">
-          <span class="nav-icon">⏰</span> Orario invio
-        </a>
-        <a class="nav-link" data-page="messages">
-          <span class="nav-icon">✏️</span> Messaggi
-        </a>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Menu</div>
+          <a class="nav-link active" data-page="dashboard">
+            <div class="nav-icon-wrap">🏠</div>
+            <div class="nav-link-info">
+              <div class="nav-link-title">Dashboard</div>
+              <div class="nav-link-sub">Stato e invio manuale</div>
+            </div>
+          </a>
+          <a class="nav-link" data-page="ipratico">
+            <div class="nav-icon-wrap">🏪</div>
+            <div class="nav-link-info">
+              <div class="nav-link-title">iPratico</div>
+              <div class="nav-link-sub">Credenziali POS</div>
+            </div>
+          </a>
+          <a class="nav-link" data-page="whatsapp">
+            <div class="nav-icon-wrap">💬</div>
+            <div class="nav-link-info">
+              <div class="nav-link-title">WhatsApp</div>
+              <div class="nav-link-sub">Connessione Green API</div>
+            </div>
+          </a>
+          <a class="nav-link" data-page="schedule">
+            <div class="nav-icon-wrap">⏰</div>
+            <div class="nav-link-info">
+              <div class="nav-link-title">Orario invio</div>
+              <div class="nav-link-sub">Programmazione automatica</div>
+            </div>
+          </a>
+          <a class="nav-link" data-page="messages">
+            <div class="nav-icon-wrap">✏️</div>
+            <div class="nav-link-info">
+              <div class="nav-link-title">Messaggi</div>
+              <div class="nav-link-sub">Testo e frequenza</div>
+            </div>
+          </a>
+        </div>
+
         <button class="btn-logout" id="btn-logout">Esci</button>
       </nav>
 
       <main class="content">
+
         <!-- Dashboard -->
         <div id="page-dashboard" class="page active">
-          <div class="page-header">
+          <div class="page-topbar">
+            <div class="page-topbar-icon">🏠</div>
             <h2>Dashboard</h2>
+          </div>
+          <div class="page-body">
             <p class="page-desc">Stato del sistema e invio manuale</p>
-          </div>
 
-          <div class="card-grid">
-            <div class="card">
-              <div class="card-label">WhatsApp</div>
-              <div id="dash-wa-status" class="badge badge-gray">Caricamento...</div>
+            <div class="card-grid">
+              <div class="card">
+                <div class="card-label">WhatsApp</div>
+                <div id="dash-wa-status" class="badge badge-gray">Caricamento...</div>
+              </div>
+              <div class="card">
+                <div class="card-label">iPratico</div>
+                <div id="dash-ip-status" class="badge badge-gray">—</div>
+              </div>
+              <div class="card">
+                <div class="card-label">Invio automatico</div>
+                <div id="dash-schedule" class="badge badge-gray">—</div>
+              </div>
             </div>
-            <div class="card">
-              <div class="card-label">iPratico</div>
-              <div id="dash-ip-status" class="badge badge-gray">—</div>
-            </div>
-            <div class="card">
-              <div class="card-label">Invio automatico</div>
-              <div id="dash-schedule" class="badge badge-gray">—</div>
-            </div>
-          </div>
 
-          <div id="setup-hint" class="setup-hint hidden">
-            <strong>⚙️ Configurazione richiesta</strong>
-            <p id="setup-hint-text"></p>
-          </div>
+            <div id="setup-hint" class="setup-hint hidden">
+              <strong>⚙️ Configurazione richiesta</strong>
+              <p id="setup-hint-text"></p>
+            </div>
 
-          <div class="action-row">
-            <button class="btn-primary" id="btn-preview">📋 Anteprima messaggio</button>
-            <button class="btn-secondary" id="btn-send-now">📤 Invia ora</button>
+            <div class="action-row">
+              <button class="btn-primary" id="btn-preview">📋 Anteprima messaggio</button>
+              <button class="btn-secondary" id="btn-send-now">📤 Invia ora</button>
+            </div>
+            <pre id="preview-box" class="preview-box hidden"></pre>
+            <p id="dash-feedback" class="feedback"></p>
           </div>
-          <pre id="preview-box" class="preview-box hidden"></pre>
-          <p id="dash-feedback" class="feedback"></p>
         </div>
 
         <!-- iPratico settings -->
         <div id="page-ipratico" class="page">
-          <div class="page-header">
-            <h2>Credenziali iPratico</h2>
-            <p class="page-desc">Accesso al portale iPratico per il recupero dei dati di vendita</p>
+          <div class="page-topbar">
+            <div class="page-topbar-icon">🏪</div>
+            <h2>iPratico</h2>
           </div>
-          <form id="form-ipratico">
-            <label>Email iPratico
-              <input type="email" id="ip-email" autocomplete="off" placeholder="email@ristorante.it" />
-            </label>
-            <label>Password iPratico
-              <input type="password" id="ip-password" placeholder="(lascia vuoto per non modificare)" autocomplete="new-password" />
-            </label>
-            <label>Channel ID
-              <input type="text" id="ip-channel" placeholder="lct_20572" />
-              <span class="field-hint">Solitamente inizia con "lct_"</span>
-            </label>
-            <div class="btn-row">
-              <button type="submit" class="btn-primary" id="btn-save-ip">Salva</button>
-              <button type="button" class="btn-secondary" id="btn-test-ipratico">Testa connessione</button>
-            </div>
-            <p class="feedback" id="ip-feedback"></p>
-          </form>
+          <div class="page-body">
+            <p class="page-desc">Accesso al portale iPratico per il recupero dei dati di vendita</p>
+            <form id="form-ipratico">
+              <label>Email iPratico
+                <input type="email" id="ip-email" autocomplete="off" placeholder="email@ristorante.it" />
+              </label>
+              <label>Password iPratico
+                <input type="password" id="ip-password" placeholder="(lascia vuoto per non modificare)" autocomplete="new-password" />
+              </label>
+              <label>Channel ID
+                <input type="text" id="ip-channel" placeholder="lct_20572" />
+                <span class="field-hint">Solitamente inizia con "lct_"</span>
+              </label>
+              <div class="btn-row">
+                <button type="submit" class="btn-primary" id="btn-save-ip">Salva</button>
+                <button type="button" class="btn-secondary" id="btn-test-ipratico">Testa connessione</button>
+              </div>
+              <p class="feedback" id="ip-feedback"></p>
+            </form>
+          </div>
         </div>
 
         <!-- WhatsApp settings -->
         <div id="page-whatsapp" class="page">
-          <div class="page-header">
-            <h2>Connessione WhatsApp</h2>
+          <div class="page-topbar">
+            <div class="page-topbar-icon">💬</div>
+            <h2>WhatsApp</h2>
+          </div>
+          <div class="page-body">
             <p class="page-desc">Crea un account gratuito su <strong>green-api.com</strong>, poi inserisci le credenziali e scansiona il QR</p>
-          </div>
 
-          <!-- Step 1: credentials -->
-          <div class="setup-step" id="step-creds">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <h3>Credenziali Green API</h3>
-              <p class="field-hint">Registrati su <strong>green-api.com</strong>, crea un'istanza gratuita e copia ID e token</p>
-              <form id="form-whatsapp-creds">
-                <label>ID Istanza
-                  <input type="text" id="wa-instance" placeholder="es. 1234567890" autocomplete="off" />
-                </label>
-                <label>API Token
-                  <input type="password" id="wa-token" placeholder="(lascia vuoto per non modificare)" autocomplete="new-password" />
-                </label>
-                <details id="wa-advanced">
-                  <summary class="advanced-toggle">Impostazioni avanzate</summary>
-                  <div style="margin-top:10px">
-                    <label>API URL
-                      <input type="text" id="wa-url" placeholder="https://7107.api.greenapi.com" autocomplete="off" />
-                    </label>
+            <!-- Step 1: credentials -->
+            <div class="setup-step" id="step-creds">
+              <div class="step-badge">1</div>
+              <div class="step-body">
+                <h3>Credenziali Green API</h3>
+                <p class="field-hint">Registrati su <strong>green-api.com</strong>, crea un'istanza gratuita e copia ID e token</p>
+                <form id="form-whatsapp-creds">
+                  <label>ID Istanza
+                    <input type="text" id="wa-instance" placeholder="es. 1234567890" autocomplete="off" />
+                  </label>
+                  <label>API Token
+                    <input type="password" id="wa-token" placeholder="(lascia vuoto per non modificare)" autocomplete="new-password" />
+                  </label>
+                  <details id="wa-advanced">
+                    <summary class="advanced-toggle">Impostazioni avanzate</summary>
+                    <div style="margin-top:10px">
+                      <label>API URL
+                        <input type="text" id="wa-url" placeholder="https://7107.api.greenapi.com" autocomplete="off" />
+                      </label>
+                    </div>
+                  </details>
+                  <button type="submit" class="btn-primary" id="btn-connect-wa">
+                    💬 Salva e Connetti WhatsApp
+                  </button>
+                  <p class="feedback" id="wa-creds-feedback"></p>
+                </form>
+              </div>
+            </div>
+
+            <!-- Step 2: QR scan -->
+            <div class="setup-step" id="step-qr">
+              <div class="step-badge">2</div>
+              <div class="step-body">
+                <h3>Scansiona il QR con WhatsApp</h3>
+                <div id="qr-section" class="qr-section hidden">
+                  <div id="qr-container">
+                    <img id="qr-img" alt="QR Code WhatsApp" />
                   </div>
-                </details>
-                <button type="submit" class="btn-primary" id="btn-connect-wa">
-                  💬 Salva e Connetti WhatsApp
-                </button>
-                <p class="feedback" id="wa-creds-feedback"></p>
-              </form>
-            </div>
-          </div>
-
-          <!-- Step 2: QR scan -->
-          <div class="setup-step" id="step-qr">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <h3>Scansiona il QR con WhatsApp</h3>
-              <div id="qr-section" class="qr-section hidden">
-                <div id="qr-container">
-                  <img id="qr-img" alt="QR Code WhatsApp" />
+                  <p id="qr-status" class="qr-status">In attesa...</p>
+                  <button class="btn-secondary btn-sm" id="btn-refresh-qr">🔄 Rigenera QR</button>
                 </div>
-                <p id="qr-status" class="qr-status">In attesa...</p>
-                <button class="btn-secondary btn-sm" id="btn-refresh-qr">🔄 Rigenera QR</button>
+                <p id="step-qr-hint" class="field-hint">Salva le credenziali al passo 1 per mostrare il QR.</p>
               </div>
-              <p id="step-qr-hint" class="field-hint">Salva le credenziali al passo 1 per mostrare il QR.</p>
             </div>
-          </div>
 
-          <!-- Step 3: chat selection -->
-          <div class="setup-step" id="step-chat">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <h3>Chat di destinazione</h3>
-              <div id="chat-section" class="hidden">
-                <p class="field-hint">Seleziona la chat a cui inviare i report automatici</p>
-                <div class="chat-row">
-                  <select id="chat-select">
-                    <option value="">-- Seleziona chat --</option>
-                  </select>
-                  <button class="btn-primary" id="btn-save-chat">Salva</button>
+            <!-- Step 3: chat selection -->
+            <div class="setup-step" id="step-chat">
+              <div class="step-badge">3</div>
+              <div class="step-body">
+                <h3>Chat di destinazione</h3>
+                <div id="chat-section" class="hidden">
+                  <p class="field-hint">Seleziona la chat a cui inviare i report automatici</p>
+                  <div class="chat-row">
+                    <select id="chat-select">
+                      <option value="">-- Seleziona chat --</option>
+                    </select>
+                    <button class="btn-primary" id="btn-save-chat">Salva</button>
+                  </div>
+                  <p class="feedback" id="chat-feedback"></p>
+                  <p id="current-chat" class="hint"></p>
                 </div>
-                <p class="feedback" id="chat-feedback"></p>
-                <p id="current-chat" class="hint"></p>
+                <p id="step-chat-hint" class="field-hint">Connetti WhatsApp al passo 2 per vedere le chat disponibili.</p>
               </div>
-              <p id="step-chat-hint" class="field-hint">Connetti WhatsApp al passo 2 per vedere le chat disponibili.</p>
             </div>
           </div>
         </div>
 
         <!-- Schedule settings -->
         <div id="page-schedule" class="page">
-          <div class="page-header">
+          <div class="page-topbar">
+            <div class="page-topbar-icon">⏰</div>
             <h2>Orario di invio</h2>
-            <p class="page-desc">Imposta quando inviare automaticamente il report giornaliero</p>
           </div>
-          <form id="form-schedule">
-            <label>Orario invio
-              <input type="time" id="sched-time" value="01:00" />
-            </label>
-            <label>Fuso orario
-              <select id="sched-tz">
-                <option value="Europe/Rome">Europe/Rome (Italia)</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Europe/Paris">Europe/Paris</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </label>
-            <div class="toggle-row">
-              <div>
-                <span class="toggle-label">Invio automatico</span>
-                <p class="field-hint">Attiva per inviare il report ogni giorno all'orario impostato</p>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="sched-active" />
-                <span class="slider"></span>
+          <div class="page-body">
+            <p class="page-desc">Imposta quando inviare automaticamente il report giornaliero</p>
+            <form id="form-schedule">
+              <label>Orario invio
+                <input type="time" id="sched-time" value="01:00" />
               </label>
-            </div>
-            <button type="submit" class="btn-primary" id="btn-save-sched">Salva orario</button>
-            <p class="feedback" id="sched-feedback"></p>
-          </form>
+              <label>Fuso orario
+                <select id="sched-tz">
+                  <option value="Europe/Rome">Europe/Rome (Italia)</option>
+                  <option value="Europe/London">Europe/London</option>
+                  <option value="Europe/Paris">Europe/Paris</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </label>
+              <div class="toggle-row">
+                <div>
+                  <span class="toggle-label">Invio automatico</span>
+                  <p class="field-hint">Attiva per inviare il report ogni giorno all'orario impostato</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="sched-active" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <button type="submit" class="btn-primary" id="btn-save-sched">Salva orario</button>
+              <p class="feedback" id="sched-feedback"></p>
+            </form>
+          </div>
         </div>
+
         <!-- Messages settings -->
         <div id="page-messages" class="page">
-          <div class="page-header">
-            <h2>Personalizzazione messaggi</h2>
-            <p class="page-desc">Modifica il testo e la frequenza di ogni messaggio. Usa i tag per inserire dati reali.</p>
+          <div class="page-topbar">
+            <div class="page-topbar-icon">✏️</div>
+            <h2>Messaggi</h2>
           </div>
-          <form id="form-messages">
+          <div class="page-body">
+            <p class="page-desc">Modifica il testo e la frequenza di ogni messaggio. Usa i tag per inserire dati reali.</p>
+            <form id="form-messages">
 
-            <!-- Daily message -->
-            <div class="msg-card">
-              <div class="msg-card-header">
-                <h3>📊 Incassi giornalieri</h3>
-                <div class="freq-row">
-                  <label class="freq-label">Frequenza</label>
-                  <select id="freq-day" class="freq-select">
-                    <option value="daily">Ogni giorno</option>
-                    <option value="weekly">Ogni lunedì</option>
-                    <option value="monthly">Il 1° del mese</option>
-                    <option value="disabled">Disattivato</option>
-                  </select>
+              <!-- Daily message -->
+              <div class="msg-card">
+                <div class="msg-card-header">
+                  <h3>📊 Incassi giornalieri</h3>
+                  <div class="freq-row">
+                    <label class="freq-label">Frequenza</label>
+                    <select id="freq-day" class="freq-select">
+                      <option value="daily">Ogni giorno</option>
+                      <option value="weekly">Ogni lunedì</option>
+                      <option value="monthly">Il 1° del mese</option>
+                      <option value="disabled">Disattivato</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <div class="tag-bar">
-                <span class="tag-hint">Tag disponibili:</span>
-                <button type="button" class="tag-chip" data-target="template-day" data-tag="data">{{data}}</button>
-                <button type="button" class="tag-chip" data-target="template-day" data-tag="vendite">{{vendite}}</button>
-              </div>
-              <textarea id="template-day" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
-            </div>
-
-            <!-- Month-to-date message -->
-            <div class="msg-card">
-              <div class="msg-card-header">
-                <h3>📆 Totale mensile</h3>
-                <div class="freq-row">
-                  <label class="freq-label">Frequenza</label>
-                  <select id="freq-month" class="freq-select">
-                    <option value="daily">Ogni giorno</option>
-                    <option value="weekly">Ogni lunedì</option>
-                    <option value="monthly">Il 1° del mese</option>
-                    <option value="disabled">Disattivato</option>
-                  </select>
+                <div class="tag-bar">
+                  <span class="tag-hint">Tag:</span>
+                  <button type="button" class="tag-chip" data-target="template-day" data-tag="data">{{data}}</button>
+                  <button type="button" class="tag-chip" data-target="template-day" data-tag="vendite">{{vendite}}</button>
                 </div>
+                <textarea id="template-day" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
               </div>
-              <div class="tag-bar">
-                <span class="tag-hint">Tag disponibili:</span>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="mese">{{mese}}</button>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_mese">{{vendite_mese}}</button>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_pct">{{variazione_pct}}</button>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_eur">{{variazione_eur}}</button>
-                <button type="button" class="tag-chip" data-target="template-month" data-tag="anno_prec">{{anno_prec}}</button>
-              </div>
-              <textarea id="template-month" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
-            </div>
 
-            <!-- Month-closed message -->
-            <div class="msg-card">
-              <div class="msg-card-header">
-                <h3>🎯 Mese chiuso (1° del mese)</h3>
-                <div class="freq-row">
-                  <label class="freq-label">Frequenza</label>
-                  <select id="freq-month-closed" class="freq-select">
-                    <option value="monthly">Il 1° del mese</option>
-                    <option value="disabled">Disattivato</option>
-                  </select>
+              <!-- Month-to-date message -->
+              <div class="msg-card">
+                <div class="msg-card-header">
+                  <h3>📆 Totale mensile</h3>
+                  <div class="freq-row">
+                    <label class="freq-label">Frequenza</label>
+                    <select id="freq-month" class="freq-select">
+                      <option value="daily">Ogni giorno</option>
+                      <option value="weekly">Ogni lunedì</option>
+                      <option value="monthly">Il 1° del mese</option>
+                      <option value="disabled">Disattivato</option>
+                    </select>
+                  </div>
                 </div>
+                <div class="tag-bar">
+                  <span class="tag-hint">Tag:</span>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="mese">{{mese}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_mese">{{vendite_mese}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_pct">{{variazione_pct}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_eur">{{variazione_eur}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month" data-tag="anno_prec">{{anno_prec}}</button>
+                </div>
+                <textarea id="template-month" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
               </div>
-              <div class="tag-bar">
-                <span class="tag-hint">Tag disponibili:</span>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="mese">{{mese}}</button>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_totali">{{vendite_totali}}</button>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_pct">{{variazione_pct}}</button>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_eur">{{variazione_eur}}</button>
-                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="anno_prec">{{anno_prec}}</button>
-              </div>
-              <textarea id="template-month-closed" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
-            </div>
 
-            <div class="btn-row">
-              <button type="submit" class="btn-primary" id="btn-save-messages">Salva messaggi</button>
-              <button type="button" class="btn-secondary" id="btn-reset-messages">Ripristina predefiniti</button>
-            </div>
-            <p class="feedback" id="messages-feedback"></p>
-          </form>
+              <!-- Month-closed message -->
+              <div class="msg-card">
+                <div class="msg-card-header">
+                  <h3>🎯 Mese chiuso (1° del mese)</h3>
+                  <div class="freq-row">
+                    <label class="freq-label">Frequenza</label>
+                    <select id="freq-month-closed" class="freq-select">
+                      <option value="monthly">Il 1° del mese</option>
+                      <option value="disabled">Disattivato</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="tag-bar">
+                  <span class="tag-hint">Tag:</span>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="mese">{{mese}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_totali">{{vendite_totali}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_pct">{{variazione_pct}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_eur">{{variazione_eur}}</button>
+                  <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="anno_prec">{{anno_prec}}</button>
+                </div>
+                <textarea id="template-month-closed" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
+              </div>
+
+              <div class="btn-row">
+                <button type="submit" class="btn-primary" id="btn-save-messages">Salva messaggi</button>
+                <button type="button" class="btn-secondary" id="btn-reset-messages">Ripristina predefiniti</button>
+              </div>
+              <p class="feedback" id="messages-feedback"></p>
+            </form>
+          </div>
         </div>
 
       </main>
