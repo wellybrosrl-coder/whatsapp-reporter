@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>iPratico Reporter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -11,9 +13,12 @@
     <!-- Auth screen -->
     <div id="screen-auth" class="screen">
       <div class="auth-card">
-        <div class="auth-logo">📊</div>
-        <h1>iPratico Reporter</h1>
-        <p class="auth-subtitle">Invio automatico report vendite su WhatsApp</p>
+        <div class="auth-wordmark">
+          <div class="auth-rule"></div>
+          <h1><em>iPratico</em> Reporter</h1>
+          <p>Invio automatico report vendite</p>
+          <div class="auth-rule"></div>
+        </div>
         <div class="tab-bar">
           <button class="tab-btn active" data-tab="login">Accedi</button>
           <button class="tab-btn" data-tab="register">Crea account</button>
@@ -44,7 +49,11 @@
     <!-- Main app -->
     <div id="screen-app" class="screen hidden">
       <nav class="sidebar">
-        <div class="sidebar-logo">📊 Reporter</div>
+        <div class="sidebar-logo">
+          <span class="sidebar-logo-text"><em>iPratico</em> Reporter</span>
+          <span class="sidebar-logo-sub">Sales Automation</span>
+        </div>
+        <div class="sidebar-divider"></div>
         <a class="nav-link active" data-page="dashboard">
           <span class="nav-icon">🏠</span> Dashboard
         </a>
