@@ -125,12 +125,41 @@
         <div id="page-whatsapp" class="page">
           <div class="page-header">
             <h2>Connessione WhatsApp</h2>
-            <p class="page-desc">Scansiona il QR con WhatsApp per collegare il numero al sistema di report</p>
+            <p class="page-desc">Crea un account gratuito su <strong>green-api.com</strong>, poi inserisci le credenziali e scansiona il QR</p>
           </div>
 
-          <!-- Step 1: QR scan -->
-          <div class="setup-step" id="step-qr">
+          <!-- Step 1: credentials -->
+          <div class="setup-step" id="step-creds">
             <div class="step-badge">1</div>
+            <div class="step-body">
+              <h3>Credenziali Green API</h3>
+              <p class="field-hint">Registrati su <strong>green-api.com</strong>, crea un'istanza gratuita e copia ID e token</p>
+              <form id="form-whatsapp-creds">
+                <label>ID Istanza
+                  <input type="text" id="wa-instance" placeholder="es. 1234567890" autocomplete="off" />
+                </label>
+                <label>API Token
+                  <input type="password" id="wa-token" placeholder="(lascia vuoto per non modificare)" autocomplete="new-password" />
+                </label>
+                <details id="wa-advanced">
+                  <summary class="advanced-toggle">Impostazioni avanzate</summary>
+                  <div style="margin-top:10px">
+                    <label>API URL
+                      <input type="text" id="wa-url" placeholder="https://7107.api.greenapi.com" autocomplete="off" />
+                    </label>
+                  </div>
+                </details>
+                <button type="submit" class="btn-primary" id="btn-connect-wa">
+                  💬 Salva e Connetti WhatsApp
+                </button>
+                <p class="feedback" id="wa-creds-feedback"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Step 2: QR scan -->
+          <div class="setup-step" id="step-qr">
+            <div class="step-badge">2</div>
             <div class="step-body">
               <h3>Scansiona il QR con WhatsApp</h3>
               <div id="qr-section" class="qr-section hidden">
@@ -140,13 +169,13 @@
                 <p id="qr-status" class="qr-status">In attesa...</p>
                 <button class="btn-secondary btn-sm" id="btn-refresh-qr">🔄 Rigenera QR</button>
               </div>
-              <p id="step-qr-hint" class="field-hint">Preparazione connessione in corso...</p>
+              <p id="step-qr-hint" class="field-hint">Salva le credenziali al passo 1 per mostrare il QR.</p>
             </div>
           </div>
 
-          <!-- Step 2: chat selection -->
+          <!-- Step 3: chat selection -->
           <div class="setup-step" id="step-chat">
-            <div class="step-badge">2</div>
+            <div class="step-badge">3</div>
             <div class="step-body">
               <h3>Chat di destinazione</h3>
               <div id="chat-section" class="hidden">
@@ -160,7 +189,7 @@
                 <p class="feedback" id="chat-feedback"></p>
                 <p id="current-chat" class="hint"></p>
               </div>
-              <p id="step-chat-hint" class="field-hint">Connetti WhatsApp al passo 1 per vedere le chat disponibili.</p>
+              <p id="step-chat-hint" class="field-hint">Connetti WhatsApp al passo 2 per vedere le chat disponibili.</p>
             </div>
           </div>
         </div>
