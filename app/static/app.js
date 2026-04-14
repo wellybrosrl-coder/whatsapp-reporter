@@ -119,6 +119,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     if (page === 'whatsapp') loadWhatsAppPage();
     if (page === 'ipratico') populateIPForm();
     if (page === 'schedule') populateScheduleForm();
+    if (page === 'messages') populateMessagesForm();
   });
 });
 
@@ -532,6 +533,91 @@ document.getElementById('form-schedule').addEventListener('submit', async e => {
     fb.textContent = settings.is_active
       ? `✓ Report attivo — invio ogni giorno alle ${settings.send_time}`
       : '✓ Invio automatico disattivato';
+    fb.className = 'feedback ok';
+  } catch (ex) {
+    fb.textContent = '✗ ' + ex.message;
+    fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
+  }
+});
+
+// ---------- Messages page ----------
+
+const DEFAULT_TEMPLATES = {
+  day: '📊 Incassi del giorno:\n📆 Data: {{data}}\n💰 Vendite: €{{vendite}}',
+  month: '📆 Totale mese di {{mese}}:\n💰 Vendite: €{{vendite_mese}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
+  monthClosed: '🎯 MESE CHIUSO - {{mese}}:\n💰 Vendite totali: €{{vendite_totali}}\n📈 Variazione vs {{anno_prec}}: {{variazione_pct}} | {{variazione_eur}} €',
+};
+
+function populateMessagesForm() {
+  document.getElementById('template-day').value = settings.template_day || '';
+  document.getElementById('template-month').value = settings.template_month || '';
+  document.getElementById('template-month-closed').value = settings.template_month_closed || '';
+  document.getElementById('freq-day').value = settings.freq_day || 'daily';
+  document.getElementById('freq-month').value = settings.freq_month || 'daily';
+  document.getElementById('freq-month-closed').value = settings.freq_month_closed || 'monthly';
+}
+
+function insertTag(textareaId, tag) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const insert = `{{${tag}}}`;
+  ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + insert.length;
+  ta.focus();
+}
+
+// Tag chip click → insert at cursor
+document.querySelectorAll('.tag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    insertTag(chip.dataset.target, chip.dataset.tag);
+  });
+});
+
+document.getElementById('form-messages').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fb = document.getElementById('messages-feedback');
+  const btn = document.getElementById('btn-save-messages');
+  fb.textContent = '';
+  setLoading(btn, true);
+  try {
+    settings = await api('PUT', '/api/settings', {
+      template_day: document.getElementById('template-day').value.trim(),
+      template_month: document.getElementById('template-month').value.trim(),
+      template_month_closed: document.getElementById('template-month-closed').value.trim(),
+      freq_day: document.getElementById('freq-day').value,
+      freq_month: document.getElementById('freq-month').value,
+      freq_month_closed: document.getElementById('freq-month-closed').value,
+    }) || settings;
+    fb.textContent = '✓ Messaggi salvati';
+    fb.className = 'feedback ok';
+  } catch (ex) {
+    fb.textContent = '✗ ' + ex.message;
+    fb.className = 'feedback err';
+  } finally {
+    setLoading(btn, false);
+  }
+});
+
+document.getElementById('btn-reset-messages').addEventListener('click', async () => {
+  if (!confirm('Ripristinare i testi predefiniti per tutti i messaggi?')) return;
+  const fb = document.getElementById('messages-feedback');
+  const btn = document.getElementById('btn-reset-messages');
+  setLoading(btn, true);
+  try {
+    // Send empty strings — backend converts to null (= use default)
+    settings = await api('PUT', '/api/settings', {
+      template_day: '',
+      template_month: '',
+      template_month_closed: '',
+    }) || settings;
+    document.getElementById('template-day').value = '';
+    document.getElementById('template-month').value = '';
+    document.getElementById('template-month-closed').value = '';
+    fb.textContent = '✓ Testi predefiniti ripristinati';
     fb.className = 'feedback ok';
   } catch (ex) {
     fb.textContent = '✗ ' + ex.message;

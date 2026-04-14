@@ -31,6 +31,14 @@ class SettingsOut(BaseModel):
     # Indicate whether secrets are saved (without exposing them)
     has_ipratico_password: bool = False
     has_greenapi_token: bool = False
+    # Message templates (None = use built-in default)
+    template_day: Optional[str] = None
+    template_month: Optional[str] = None
+    template_month_closed: Optional[str] = None
+    # Per-message frequency
+    freq_day: str = "daily"
+    freq_month: str = "daily"
+    freq_month_closed: str = "monthly"
 
     model_config = {"from_attributes": True}
 
@@ -47,6 +55,14 @@ class SettingsIn(BaseModel):
     send_time: Optional[str] = None
     timezone: Optional[str] = None
     is_active: Optional[bool] = None
+    # Message templates
+    template_day: Optional[str] = None
+    template_month: Optional[str] = None
+    template_month_closed: Optional[str] = None
+    # Per-message frequency
+    freq_day: Optional[str] = None
+    freq_month: Optional[str] = None
+    freq_month_closed: Optional[str] = None
 
 
 # ---------- Helpers ---------- #
@@ -75,6 +91,12 @@ def _to_out(s: UserSettings) -> SettingsOut:
         is_active=s.is_active,
         has_ipratico_password=bool(s.ipratico_password_enc),
         has_greenapi_token=bool(s.greenapi_api_token_enc),
+        template_day=s.template_day,
+        template_month=s.template_month,
+        template_month_closed=s.template_month_closed,
+        freq_day=s.freq_day or "daily",
+        freq_month=s.freq_month or "daily",
+        freq_month_closed=s.freq_month_closed or "monthly",
     )
 
 
@@ -119,6 +141,18 @@ async def update_settings(
         s.timezone = body.timezone
     if body.is_active is not None:
         s.is_active = body.is_active
+    if body.template_day is not None:
+        s.template_day = body.template_day or None  # empty string → reset to default
+    if body.template_month is not None:
+        s.template_month = body.template_month or None
+    if body.template_month_closed is not None:
+        s.template_month_closed = body.template_month_closed or None
+    if body.freq_day is not None:
+        s.freq_day = body.freq_day
+    if body.freq_month is not None:
+        s.freq_month = body.freq_month
+    if body.freq_month_closed is not None:
+        s.freq_month_closed = body.freq_month_closed
 
     await db.commit()
     await db.refresh(s)

@@ -41,6 +41,16 @@ class UserSettings(Base):
     timezone: Mapped[str] = mapped_column(String, default="Europe/Rome")
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Message templates (None = use built-in default)
+    template_day: Mapped[str | None] = mapped_column(String)
+    template_month: Mapped[str | None] = mapped_column(String)
+    template_month_closed: Mapped[str | None] = mapped_column(String)
+
+    # Per-message frequency: "daily" | "weekly" | "monthly" | "disabled"
+    freq_day: Mapped[str] = mapped_column(String, default="daily")
+    freq_month: Mapped[str] = mapped_column(String, default="daily")
+    freq_month_closed: Mapped[str] = mapped_column(String, default="monthly")
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

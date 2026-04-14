@@ -57,6 +57,9 @@
         <a class="nav-link" data-page="schedule">
           <span class="nav-icon">⏰</span> Orario invio
         </a>
+        <a class="nav-link" data-page="messages">
+          <span class="nav-icon">✏️</span> Messaggi
+        </a>
         <button class="btn-logout" id="btn-logout">Esci</button>
       </nav>
 
@@ -226,6 +229,94 @@
             <p class="feedback" id="sched-feedback"></p>
           </form>
         </div>
+        <!-- Messages settings -->
+        <div id="page-messages" class="page">
+          <div class="page-header">
+            <h2>Personalizzazione messaggi</h2>
+            <p class="page-desc">Modifica il testo e la frequenza di ogni messaggio. Usa i tag per inserire dati reali.</p>
+          </div>
+          <form id="form-messages">
+
+            <!-- Daily message -->
+            <div class="msg-card">
+              <div class="msg-card-header">
+                <h3>📊 Incassi giornalieri</h3>
+                <div class="freq-row">
+                  <label class="freq-label">Frequenza</label>
+                  <select id="freq-day" class="freq-select">
+                    <option value="daily">Ogni giorno</option>
+                    <option value="weekly">Ogni lunedì</option>
+                    <option value="monthly">Il 1° del mese</option>
+                    <option value="disabled">Disattivato</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tag-bar">
+                <span class="tag-hint">Tag disponibili:</span>
+                <button type="button" class="tag-chip" data-target="template-day" data-tag="data">{{data}}</button>
+                <button type="button" class="tag-chip" data-target="template-day" data-tag="vendite">{{vendite}}</button>
+              </div>
+              <textarea id="template-day" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
+            </div>
+
+            <!-- Month-to-date message -->
+            <div class="msg-card">
+              <div class="msg-card-header">
+                <h3>📆 Totale mensile</h3>
+                <div class="freq-row">
+                  <label class="freq-label">Frequenza</label>
+                  <select id="freq-month" class="freq-select">
+                    <option value="daily">Ogni giorno</option>
+                    <option value="weekly">Ogni lunedì</option>
+                    <option value="monthly">Il 1° del mese</option>
+                    <option value="disabled">Disattivato</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tag-bar">
+                <span class="tag-hint">Tag disponibili:</span>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="mese">{{mese}}</button>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_mese">{{vendite_mese}}</button>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_pct">{{variazione_pct}}</button>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="variazione_eur">{{variazione_eur}}</button>
+                <button type="button" class="tag-chip" data-target="template-month" data-tag="anno_prec">{{anno_prec}}</button>
+              </div>
+              <textarea id="template-month" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
+            </div>
+
+            <!-- Month-closed message -->
+            <div class="msg-card">
+              <div class="msg-card-header">
+                <h3>🎯 Mese chiuso (1° del mese)</h3>
+                <div class="freq-row">
+                  <label class="freq-label">Frequenza</label>
+                  <select id="freq-month-closed" class="freq-select">
+                    <option value="monthly">Il 1° del mese</option>
+                    <option value="disabled">Disattivato</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tag-bar">
+                <span class="tag-hint">Tag disponibili:</span>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="mese">{{mese}}</button>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_totali">{{vendite_totali}}</button>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="vendite_anno_prec">{{vendite_anno_prec}}</button>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_pct">{{variazione_pct}}</button>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="variazione_eur">{{variazione_eur}}</button>
+                <button type="button" class="tag-chip" data-target="template-month-closed" data-tag="anno_prec">{{anno_prec}}</button>
+              </div>
+              <textarea id="template-month-closed" class="msg-template" rows="4" placeholder="Lascia vuoto per usare il testo predefinito"></textarea>
+            </div>
+
+            <div class="btn-row">
+              <button type="submit" class="btn-primary" id="btn-save-messages">Salva messaggi</button>
+              <button type="button" class="btn-secondary" id="btn-reset-messages">Ripristina predefiniti</button>
+            </div>
+            <p class="feedback" id="messages-feedback"></p>
+          </form>
+        </div>
+
       </main>
     </div>
   </div>
