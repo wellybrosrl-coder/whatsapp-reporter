@@ -183,8 +183,15 @@ async function refreshDashboard() {
         waEl.className = 'badge badge-yellow';
       }
     } catch {
-      waEl.textContent = 'Errore connessione';
-      waEl.className = 'badge badge-red';
+      // Status check failed (transient error or rate limit).
+      // If chat is already saved the instance was previously authorized — don't alarm the user.
+      if (settings.greenapi_chat_id) {
+        waEl.textContent = 'Connesso ✓';
+        waEl.className = 'badge badge-green';
+      } else {
+        waEl.textContent = 'Verifica non disponibile';
+        waEl.className = 'badge badge-yellow';
+      }
     }
   }
 
