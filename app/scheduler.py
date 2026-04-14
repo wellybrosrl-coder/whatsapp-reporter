@@ -1,23 +1,19 @@
 """APScheduler — per-user cron jobs for the daily report."""
 from __future__ import annotations
 
-import asyncio
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 logger = logging.getLogger(__name__)
-scheduler = BackgroundScheduler()
+# AsyncIOScheduler runs on the same event loop as FastAPI/uvicorn,
+# so async DB sessions and httpx calls work without cross-loop issues.
+scheduler = AsyncIOScheduler()
 
 
 def _job_id(user_id: int) -> str:
     return f"report_{user_id}"
-
-
-def _run_report_sync(user_id: int) -> None:
-    """Synchronous wrapper called by APScheduler (runs in a thread pool)."""
-    asyncio.run(_run_report_async(user_id))
 
 
 async def _run_report_async(user_id: int) -> None:
@@ -55,7 +51,7 @@ def sync_user_job(user_id: int, settings) -> None:
         return
 
     scheduler.add_job(
-        _run_report_sync,
+        _run_report_async,
         CronTrigger(hour=int(hour), minute=int(minute), timezone=settings.timezone or "Europe/Rome"),
         id=job_id,
         replace_existing=True,
